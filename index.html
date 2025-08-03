@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menedżer Promptów</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        textarea { overflow-y: hidden; transition: height 0.2s ease-in-out; }
+        textarea, input { font-size: 0.875rem; }
+        .version-item { font-size: 0.875rem; }
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; transform: translateY(20px); }
+            10%, 90% { opacity: 1; transform: translateY(0); }
+        }
+        .toast-notification { animation: fadeInOut 3s ease-in-out forwards; }
+        .modal { transition: opacity 0.25s ease; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="mb-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h1 class="text-3xl font-bold text-slate-900">Menedżer Promptów</h1>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <input type="search" id="search-input" placeholder="Szukaj w promptach..." class="w-full sm:w-auto px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="manage-snippets-btn" class="px-4 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700">Zarządzaj Wstawkami</button>
+                    <button id="import-btn" class="px-4 py-2 bg-slate-600 text-white font-semibold rounded-lg shadow-md hover:bg-slate-700">Importuj</button>
+                    <button id="export-btn" class="px-4 py-2 bg-slate-600 text-white font-semibold rounded-lg shadow-md hover:bg-slate-700">Eksportuj</button>
+                    <input type="file" id="import-file-input" class="hidden" accept=".json">
+                </div>
+            </div>
+        </header>
+
+        <div class="mb-6 bg-white p-6 rounded-lg shadow-lg">
+             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-xl font-bold text-slate-800">Twoje Prompty</h2>
+                <button id="add-prompt-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 whitespace-nowrap">
+                    + Nowy Prompt
+                </button>
+            </div>
+            <div id="tabs-container" class="flex border-b border-slate-300 mt-4 overflow-x-auto"></div>
+        
+            <main id="main-content" class="mt-6 min-h-[50vh] flex flex-col md:flex-row gap-6">
+                <aside id="versions-sidebar" class="w-full md:w-1/3 lg:w-1/4 border-r-0 md:border-r md:pr-6 border-slate-200">
+                    <h3 class="text-lg font-bold mb-4">Historia Wersji</h3>
+                    <div id="versions-list" class="space-y-2"></div>
+                </aside>
+                <section id="editor-section" class="w-full md:w-2/3 lg:w-3/4 flex flex-col"></section>
+            </main>
+        </div>
+
+        <section id="workspace" class="bg-slate-50 p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold text-slate-800 mb-4">Obszar Roboczy</h2>
+            <div class="space-y-4">
+                 <div>
+                    <label for="prompt-temporary" class="block text-sm font-medium text-slate-700 mb-1">Tekst tymczasowy (nie jest zapisywany)</label>
+                    <textarea id="prompt-temporary" class="w-full p-2 border border-dashed border-slate-400 rounded-md shadow-sm resize-none bg-white" rows="3" placeholder="Wklej tutaj dodatkowy kontekst, który chcesz dołączyć do schowka..."></textarea>
+                 </div>
+                 <div>
+                    <label for="prompt-full-preview" class="block text-sm font-medium text-slate-700 mb-1">Podgląd całego promptu</label>
+                    <textarea id="prompt-full-preview" class="w-full p-2 border border-slate-200 rounded-md shadow-sm resize-none bg-white" rows="5" readonly></textarea>
+                 </div>
+                 <button id="copy-prompt-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">Kopiuj do schowka</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="snippets-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-xl font-bold">Zarządzaj Wstawkami</h3>
+                <button id="modal-close-btn" class="text-2xl font-bold text-slate-500 hover:text-slate-800">&times;</button>
+            </div>
+            <div class="flex-grow p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div id="snippets-list-container" class="flex flex-col gap-2"></div>
+                <div id="snippet-form-container">
+                    <h4 class="text-lg font-semibold mb-2">Dodaj / Edytuj Wstawkę</h4>
+                    <input type="hidden" id="snippet-id-input">
+                    <div class="mb-4">
+                        <label for="snippet-name-input" class="block text-sm font-medium text-slate-700 mb-1">Nazwa (bez spacji, np. "moje_wytyczne")</label>
+                        <input type="text" id="snippet-name-input" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm">
+                    </div>
+                    <div class="mb-4">
+                        <label for="snippet-content-input" class="block text-sm font-medium text-slate-700 mb-1">Treść</label>
+                        <textarea id="snippet-content-input" rows="8" class="w-full p-2 border border-slate-300 rounded-md shadow-sm"></textarea>
+                    </div>
+                    <button id="save-snippet-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Zapisz Wstawkę</button>
+                    <button id="clear-snippet-form-btn" class="px-4 py-2 bg-slate-500 text-white font-semibold rounded-lg shadow-md hover:bg-slate-600">Wyczyść</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50"></div>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- KONFIGURACJA FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCnBPRcCeIC1KOp6IjlNpr9KP6yUNPMPyw",
+            authDomain: "prompt-manager-94b81.firebaseapp.com",
+            projectId: "prompt-manager-94b81",
+            storageBucket: "prompt-manager-94b81.firebasestorage.app",
+            messagingSenderId: "785976279444",
+            appId: "1:785976279444:web:e88e7ae1bd8eb0abb3cf81"
+        };
+
+        // Inicjalizacja Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const dbDocRef = doc(db, "promptData", "mainDoc"); // Wszystkie dane będą w jednym dokumencie
+
+        // --- SELEKTORY DOM ---
+        const tabsContainer = document.getElementById('tabs-container');
+        const mainContent = document.getElementById('main-content');
+        const versionsSidebar = document.getElementById('versions-sidebar');
+        const versionsList = document.getElementById('versions-list');
+        const editorSection = document.getElementById('editor-section');
+        const addPromptBtn = document.getElementById('add-prompt-btn');
+        const copyPromptBtnWorkspace = document.getElementById('copy-prompt-btn');
+        const temporaryTextArea = document.getElementById('prompt-temporary');
+        const exportBtn = document.getElementById('export-btn');
+        const importBtn = document.getElementById('import-btn');
+        const importFileInput = document.getElementById('import-file-input');
+        const searchInput = document.getElementById('search-input');
+        const toastContainer = document.getElementById('toast-container');
+        const snippetsModal = document.getElementById('snippets-modal');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const manageSnippetsBtn = document.getElementById('manage-snippets-btn');
+        const saveSnippetBtn = document.getElementById('save-snippet-btn');
+        const clearSnippetFormBtn = document.getElementById('clear-snippet-form-btn');
+        const snippetsListContainer = document.getElementById('snippets-list-container');
+        const snippetIdInput = document.getElementById('snippet-id-input');
+        const snippetNameInput = document.getElementById('snippet-name-input');
+        const snippetContentInput = document.getElementById('snippet-content-input');
+
+        // --- STAN APLIKACJI ---
+        let data = { prompts: [], snippets: [] };
+        let activePromptId = null;
+        let activeVersionId = null;
+        const initialExampleText = {
+            role: "Jesteś pomocnym asystentem AI.",
+            context: "Użytkownik prosi o wyjaśnienie koncepcji.",
+            instruction: "Wyjaśnij, czym jest 'uczenie maszynowe' w prostych słowach, używając analogii.",
+            mode: "Odpowiadaj w sposób przyjazny i zrozumiały dla laika.",
+            guidelines: "Unikaj technicznego żargonu. Użyj 1-2 akapitów."
+        };
+
+        // --- FUNKCJE BAZY DANYCH ---
+        
+        const saveData = async () => {
+            try {
+                await setDoc(dbDocRef, data);
+            } catch (error) {
+                console.error("Błąd zapisu do Firestore:", error);
+                showToast('Błąd zapisu danych!', 'error');
+            }
+        };
+
+        const loadData = () => {
+            onSnapshot(dbDocRef, (doc) => {
+                if (doc.exists()) {
+                    data = doc.data();
+                    if (!data.prompts) data.prompts = [];
+                    if (!data.snippets) data.snippets = [];
+                } else {
+                    const initialPromptId = Date.now();
+                    data = {
+                        prompts: [{
+                            id: initialPromptId, name: "Przykładowy Prompt",
+                            versions: [{ id: initialPromptId + 1, name: `Wersja z ${new Date().toLocaleString('pl-PL')}`, content: { ...initialExampleText }, createdAt: new Date().toISOString() }]
+                        }],
+                        snippets: [{ id: initialPromptId + 2, name: "formalny_ton", content: "Odpowiadaj w sposób formalny i profesjonalny." }]
+                    };
+                    saveData();
+                }
+
+                if (!activePromptId && data.prompts.length > 0) {
+                    activePromptId = data.prompts[0].id;
+                }
+                const activePrompt = data.prompts.find(p => p.id === activePromptId);
+                if (activePrompt && !activePrompt.versions.some(v => v.id === activeVersionId)) {
+                    activeVersionId = activePrompt.versions.length > 0 ? activePrompt.versions.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0].id : null;
+                }
+                
+                render();
+            });
+        };
+
+        // --- FUNKCJE RENDERUJĄCE ---
+        const render = () => { renderTabs(); renderContent(); };
+        const renderTabs = () => {
+            tabsContainer.innerHTML = '';
+            if (data.prompts.length === 0) {
+                tabsContainer.innerHTML = '<p class="p-4 text-slate-500">Brak promptów. Dodaj nowy, aby zacząć.</p>';
+                return;
+            }
+            data.prompts.forEach(prompt => {
+                const isActive = prompt.id === activePromptId;
+                const tab = document.createElement('button');
+                tab.className = `px-4 py-3 text-sm font-semibold border-b-2 transition-colors duration-200 ${isActive ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`;
+                tab.textContent = prompt.name;
+                tab.dataset.id = prompt.id;
+                const deleteBtn = document.createElement('span');
+                deleteBtn.textContent = ' ×';
+                deleteBtn.className = 'ml-2 font-bold hover:text-red-500';
+                deleteBtn.onclick = (e) => { e.stopPropagation(); handleDeletePrompt(prompt.id); };
+                tab.appendChild(deleteBtn);
+                tab.onclick = () => handleTabClick(prompt.id);
+                tabsContainer.appendChild(tab);
+            });
+        };
+        const renderContent = () => {
+            const activePrompt = data.prompts.find(p => p.id === activePromptId);
+            if (!activePrompt) {
+                mainContent.classList.add('items-center', 'justify-center');
+                mainContent.innerHTML = `<div class="text-center"><h2 class="text-2xl font-semibold text-slate-600">Wybierz lub utwórz prompt</h2><p class="mt-2 text-slate-500">Wybierz prompt z zakładek powyżej lub dodaj nowy.</p></div>`;
+                return;
+            }
+            mainContent.classList.remove('items-center', 'justify-center');
+            mainContent.innerHTML = '';
+            mainContent.appendChild(versionsSidebar);
+            mainContent.appendChild(editorSection);
+            renderVersions(activePrompt);
+            renderEditor(activePrompt);
+        };
+        const renderVersions = (activePrompt) => {
+            versionsList.innerHTML = '';
+            if (activePrompt.versions.length === 0) {
+                versionsList.innerHTML = '<p class="text-sm text-slate-500 p-2">Brak zapisanych wersji.</p>';
+                return;
+            }
+            const sortedVersions = [...activePrompt.versions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            sortedVersions.forEach(version => {
+                const isActive = version.id === activeVersionId;
+                const versionEl = document.createElement('div');
+                versionEl.className = `version-item flex justify-between items-center p-3 rounded-lg cursor-pointer transition-colors duration-200 ${isActive ? 'bg-indigo-100 text-indigo-800' : 'hover:bg-slate-100'}`;
+                versionEl.dataset.id = version.id;
+                versionEl.onclick = () => handleVersionClick(version.id);
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = version.name;
+                versionEl.appendChild(nameSpan);
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '×';
+                deleteBtn.className = 'text-red-500 hover:text-red-700 font-bold text-lg';
+                deleteBtn.onclick = (e) => { e.stopPropagation(); handleDeleteVersion(version.id); };
+                versionEl.appendChild(deleteBtn);
+                versionsList.appendChild(versionEl);
+            });
+        };
+        const renderEditor = (activePrompt) => {
+            editorSection.innerHTML = '';
+            const activeVersion = activePrompt.versions.find(v => v.id === activeVersionId);
+            if (!activeVersion) {
+                editorSection.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center"><h3 class="text-xl font-semibold text-slate-600">Wybierz wersję</h3><p class="mt-1 text-slate-500">Wybierz wersję z historii po lewej, aby ją wyświetlić.</p></div>`;
+                return;
+            }
+            const content = activeVersion.content || {};
+            const createField = (id, label, value) => {
+                const snippetsDropdown = data.snippets.length > 0 ? `
+                    <div class="relative inline-block ml-2">
+                        <button id="snip-btn-${id}" class="text-slate-400 hover:text-indigo-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list-ul" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/></svg>
+                        </button>
+                        <div id="snip-drop-${id}" class="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            <div class="py-1" role="none">
+                                ${data.snippets.map(s => `<a href="#" data-snippet-name="${s.name}" data-target-textarea="prompt-${id}" class="snippet-inserter text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">${s.name}</a>`).join('')}
+                            </div>
+                        </div>
+                    </div>` : '';
+                return `
+                    <div class="flex flex-col">
+                        <div class="flex items-center">
+                            <label for="prompt-${id}" class="block text-sm font-medium text-slate-700 mb-1">${label}</label>
+                            ${snippetsDropdown}
+                        </div>
+                        <textarea id="prompt-${id}" data-field-name="${id}" class="w-full p-2 border border-slate-300 rounded-md shadow-sm resize-none" style="min-height: 120px;">${escapeHtml(value)}</textarea>
+                    </div>`;
+            };
+            editorSection.innerHTML = `
+                <div class="flex-grow flex flex-col h-full">
+                    <div class="mb-4">
+                        <label for="version-name-display" class="block text-sm font-medium text-slate-700 mb-1">Wyświetlana wersja</label>
+                        <input type="text" id="version-name-display" value="${escapeHtml(activeVersion.name)}" class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-md" readonly>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${createField('role', 'Rola', content.role || '')}
+                        ${createField('context', 'Kontekst', content.context || '')}
+                        ${createField('instruction', 'Instrukcja', content.instruction || '')}
+                        ${createField('mode', 'Sposób działania', content.mode || '')}
+                    </div>
+                    <div class="mt-4">${createField('guidelines', 'Wytyczne dodatkowe', content.guidelines || '')}</div>
+                    <div class="flex items-center gap-2 flex-wrap mt-4">
+                        <button id="save-version-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Zapisz jako nową wersję</button>
+                    </div>
+                </div>`;
+            const allTextareas = editorSection.querySelectorAll('textarea');
+            allTextareas.forEach(textarea => {
+                textarea.addEventListener('input', autoResizeTextarea);
+                textarea.addEventListener('input', updateFullPromptPreview);
+                const fieldName = textarea.dataset.fieldName;
+                if (fieldName) {
+                    const initialValue = initialExampleText[fieldName];
+                    if (textarea.value === initialValue) {
+                        textarea.addEventListener('focus', () => { if (textarea.value === initialValue) textarea.value = ''; }, { once: true });
+                    }
+                }
+                autoResizeTextarea({ target: textarea });
+            });
+            editorSection.querySelectorAll('[id^=snip-btn-]').forEach(button => {
+                const dropdownId = button.id.replace('btn', 'drop');
+                const dropdown = document.getElementById(dropdownId);
+                button.addEventListener('click', (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    document.querySelectorAll('[id^=snip-drop-]').forEach(d => { if (d.id !== dropdownId) d.classList.add('hidden'); });
+                    dropdown.classList.toggle('hidden');
+                });
+            });
+            editorSection.querySelectorAll('.snippet-inserter').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = e.currentTarget.dataset.targetTextarea;
+                    const textarea = document.getElementById(targetId);
+                    if (!textarea) return;
+                    const snippetName = e.currentTarget.dataset.snippetName;
+                    const pos = textarea.selectionStart;
+                    const text = textarea.value;
+                    textarea.value = text.substring(0, pos) + `{{${snippetName}}}` + text.substring(pos);
+                    textarea.focus();
+                    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                    link.closest('[id^=snip-drop-]').classList.add('hidden');
+                });
+            });
+            document.getElementById('save-version-btn').onclick = handleSaveVersion;
+            updateFullPromptPreview();
+        };
+        
+        // --- HANDLERY ZDARZEŃ ---
+        const handleAddPrompt = () => {
+            const name = prompt("Podaj nazwę dla nowego zestawu promptów:", `Nowy Prompt`);
+            if (name) {
+                const newVersion = { id: Date.now() + 1, name: `Wersja z ${new Date().toLocaleString('pl-PL')}`, content: { role: '', context: '', instruction: '', mode: '', guidelines: '' }, createdAt: new Date().toISOString() };
+                const newPrompt = { id: Date.now(), name: name, versions: [newVersion] };
+                data.prompts.push(newPrompt);
+                activePromptId = newPrompt.id;
+                activeVersionId = newVersion.id;
+                saveData();
+            }
+        };
+        const handleDeletePrompt = (promptId) => {
+            if (confirm("Czy na pewno chcesz usunąć ten prompt i całą jego historię wersji?")) {
+                data.prompts = data.prompts.filter(p => p.id !== promptId);
+                if (activePromptId === promptId) {
+                    activePromptId = data.prompts.length > 0 ? data.prompts[0].id : null;
+                    if(activePromptId) {
+                        const newActivePrompt = data.prompts.find(p => p.id === activePromptId);
+                        activeVersionId = newActivePrompt.versions.length > 0 ? newActivePrompt.versions.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0].id : null;
+                    } else {
+                        activeVersionId = null;
+                    }
+                }
+                saveData();
+            }
+        };
+        const handleTabClick = (promptId) => {
+            activePromptId = promptId;
+            const activePrompt = data.prompts.find(p => p.id === activePromptId);
+            activeVersionId = activePrompt && activePrompt.versions.length > 0 ? activePrompt.versions.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0].id : null;
+            render();
+        };
+        const handleVersionClick = (versionId) => {
+            activeVersionId = versionId;
+            render();
+        };
+        const handleSaveVersion = () => {
+            const activePrompt = data.prompts.find(p => p.id === activePromptId);
+            if (activePrompt) {
+                const newVersion = {
+                    id: Date.now(), name: `Wersja z ${new Date().toLocaleString('pl-PL')}`, createdAt: new Date().toISOString(),
+                    content: {
+                        role: document.getElementById('prompt-role').value,
+                        context: document.getElementById('prompt-context').value,
+                        instruction: document.getElementById('prompt-instruction').value,
+                        mode: document.getElementById('prompt-mode').value,
+                        guidelines: document.getElementById('prompt-guidelines').value
+                    }
+                };
+                activePrompt.versions.push(newVersion);
+                activeVersionId = newVersion.id;
+                saveData();
+                showToast("Zapisano nową wersję!", "success");
+            }
+        };
+        const handleDeleteVersion = (versionId) => {
+            if (confirm("Czy na pewno chcesz usunąć tę wersję promptu?")) {
+                const activePrompt = data.prompts.find(p => p.id === activePromptId);
+                if (activePrompt) {
+                    activePrompt.versions = activePrompt.versions.filter(v => v.id !== versionId);
+                    if (activeVersionId === versionId) {
+                        activeVersionId = activePrompt.versions.length > 0 ? activePrompt.versions.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0].id : null;
+                    }
+                    saveData();
+                }
+            }
+        };
+        const handleCopyPrompt = () => {
+            const fullPrompt = document.getElementById('prompt-full-preview').value;
+            navigator.clipboard.writeText(fullPrompt).then(() => showToast('Skopiowano do schowka!', 'success')).catch(err => showToast('Błąd kopiowania!', 'error'));
+        };
+        const handleExport = () => {
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `prompts_backup_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast('Eksport rozpoczęty.', 'info');
+        };
+        const handleImport = () => { importFileInput.click(); };
+        const handleFileImport = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.prompts && Array.isArray(importedData.prompts)) {
+                        if (confirm("Czy na pewno chcesz nadpisać obecne dane importowanymi? Ta operacja jest nieodwracalna.")) {
+                            data = importedData;
+                            if (!data.snippets) data.snippets = [];
+                            activePromptId = data.prompts.length > 0 ? data.prompts[0].id : null;
+                            const activePrompt = activePromptId ? data.prompts.find(p => p.id === activePromptId) : null;
+                            activeVersionId = activePrompt?.versions.length > 0 ? activePrompt.versions.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0].id : null;
+                            saveData();
+                            showToast('Dane zaimportowano pomyślnie!', 'success');
+                        }
+                    } else { throw new Error("Nieprawidłowy format pliku."); }
+                } catch (error) { console.error("Błąd importu:", error); showToast(`Błąd importu: ${error.message}`, 'error'); } finally { importFileInput.value = ''; }
+            };
+            reader.readAsText(file);
+        };
+        
+        // --- FUNKCJE WSTAWEK (SNIPPETS) ---
+        const renderSnippetsModal = () => {
+            snippetsListContainer.innerHTML = '';
+            if (data.snippets.length === 0) {
+                snippetsListContainer.innerHTML = '<p class="text-slate-500">Brak wstawek. Dodaj pierwszą, używając formularza.</p>';
+            }
+            data.snippets.forEach(snippet => {
+                const snippetEl = document.createElement('div');
+                snippetEl.className = 'p-3 border rounded-lg bg-slate-50';
+                snippetEl.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <strong class="text-indigo-700 font-mono">{{${snippet.name}}}</strong>
+                        <div>
+                            <button class="edit-snippet-btn p-1 text-slate-500 hover:text-blue-600" data-id="${snippet.id}">Edytuj</button>
+                            <button class="delete-snippet-btn p-1 text-slate-500 hover:text-red-600" data-id="${snippet.id}">Usuń</button>
+                        </div>
+                    </div>
+                    <p class="mt-2 text-sm text-slate-600">${escapeHtml(snippet.content.substring(0, 100))}${snippet.content.length > 100 ? '...' : ''}</p>`;
+                snippetsListContainer.appendChild(snippetEl);
+            });
+            snippetsListContainer.querySelectorAll('.edit-snippet-btn').forEach(btn => btn.onclick = () => handleEditSnippet(Number(btn.dataset.id)));
+            snippetsListContainer.querySelectorAll('.delete-snippet-btn').forEach(btn => btn.onclick = () => handleDeleteSnippet(Number(btn.dataset.id)));
+        };
+        const handleManageSnippets = () => { renderSnippetsModal(); snippetsModal.classList.remove('hidden'); };
+        const handleCloseModal = () => { snippetsModal.classList.add('hidden'); };
+        const clearSnippetForm = () => { snippetIdInput.value = ''; snippetNameInput.value = ''; snippetContentInput.value = ''; };
+        const handleSaveSnippet = () => {
+            const id = Number(snippetIdInput.value);
+            const name = snippetNameInput.value.trim().replace(/\s+/g, '_');
+            const content = snippetContentInput.value.trim();
+            if (!name || !content) { showToast("Nazwa i treść wstawki nie mogą być puste.", "error"); return; }
+            if (id) {
+                const snippet = data.snippets.find(s => s.id === id);
+                if (snippet) { snippet.name = name; snippet.content = content; }
+            } else {
+                if (data.snippets.some(s => s.name === name)) { showToast("Wstawka o takiej nazwie już istnieje.", "error"); return; }
+                data.snippets.push({ id: Date.now(), name, content });
+            }
+            saveData();
+            showToast("Wstawka zapisana!", "success");
+            clearSnippetForm();
+            renderSnippetsModal();
+        };
+        const handleEditSnippet = (id) => {
+            const snippet = data.snippets.find(s => s.id === id);
+            if (snippet) { snippetIdInput.value = snippet.id; snippetNameInput.value = snippet.name; snippetContentInput.value = snippet.content; }
+        };
+        const handleDeleteSnippet = (id) => {
+            if (confirm("Czy na pewno chcesz usunąć tę wstawkę?")) {
+                data.snippets = data.snippets.filter(s => s.id !== id);
+                saveData();
+                showToast("Wstawka usunięta.", "success");
+                clearSnippetForm();
+                renderSnippetsModal();
+            }
+        };
+        const replaceSnippets = (text) => {
+            return text.replace(/\{\{([^}]+)\}\}/g, (match, snippetName) => {
+                const snippet = data.snippets.find(s => s.name === snippetName.trim());
+                return snippet ? snippet.content : match;
+            });
+        };
+
+        // --- FUNKCJE POMOCNICZE ---
+        const updateFullPromptPreview = () => {
+            const previewTextarea = document.getElementById('prompt-full-preview');
+            if (!previewTextarea) return;
+            let content = {
+                role: document.getElementById('prompt-role')?.value || '',
+                context: document.getElementById('prompt-context')?.value || '',
+                instruction: document.getElementById('prompt-instruction')?.value || '',
+                mode: document.getElementById('prompt-mode')?.value || '',
+                guidelines: document.getElementById('prompt-guidelines')?.value || ''
+            };
+            for (const key in content) { content[key] = replaceSnippets(content[key]); }
+            const temporaryText = document.getElementById('prompt-temporary').value.trim();
+            let fullPrompt = `### Rola\n${content.role}\n\n### Kontekst\n${content.context}\n\n### Instrukcja\n${content.instruction}\n\n### Sposób działania\n${content.mode}${content.guidelines ? `\n\n### Wytyczne dodatkowe\n${content.guidelines}` : ''}`.trim();
+            if (temporaryText) { fullPrompt += `\n\n---\n\n${temporaryText}`; }
+            previewTextarea.value = fullPrompt;
+            autoResizeTextarea({ target: previewTextarea });
+        };
+        const autoResizeTextarea = (event) => {
+            const textarea = event.target;
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+        };
+        const showToast = (message, type = 'info') => {
+            const toast = document.createElement('div');
+            let bgColor;
+            switch(type) {
+                case 'success': bgColor = 'bg-green-500'; break;
+                case 'error': bgColor = 'bg-red-500'; break;
+                default: bgColor = 'bg-slate-700'; break;
+            }
+            toast.className = `toast-notification ${bgColor} text-white font-bold py-2 px-4 rounded-lg shadow-lg`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3000);
+        };
+        function escapeHtml(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // --- INICJALIZACJA ---
+        addPromptBtn.addEventListener('click', handleAddPrompt);
+        exportBtn.addEventListener('click', handleExport);
+        importBtn.addEventListener('click', handleImport);
+        importFileInput.addEventListener('change', handleFileImport);
+        manageSnippetsBtn.addEventListener('click', handleManageSnippets);
+        modalCloseBtn.addEventListener('click', handleCloseModal);
+        saveSnippetBtn.addEventListener('click', handleSaveSnippet);
+        clearSnippetFormBtn.addEventListener('click', clearSnippetForm);
+        copyPromptBtnWorkspace.addEventListener('click', handleCopyPrompt);
+        temporaryTextArea.addEventListener('input', updateFullPromptPreview);
+        document.addEventListener('click', (e) => {
+            const isSnippetButton = e.target.closest('[id^=snip-btn-]');
+            const isSnippetDropdown = e.target.closest('[id^=snip-drop-]');
+            if (!isSnippetButton && !isSnippetDropdown) {
+                document.querySelectorAll('[id^=snip-drop-]').forEach(d => d.classList.add('hidden'));
+            }
+        });
+        
+        loadData();
+    });
+</script>
+</html>
