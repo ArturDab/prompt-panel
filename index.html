@@ -1,17 +1,684 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prompt Manager</title>
+    <title>Menedżer Promptów</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for better aesthetics */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        /* Style for draggable items */
+        .dragging {
+            opacity: 0.5;
+            background: #c7d2fe;
+        }
+        .drag-over {
+            border-top: 2px solid #4f46e5;
+        }
+    </style>
 </head>
-<body>
-    <h1>Prompt Manager</h1>
-    <form>
-        <label for="prompt-temporary">Tekst tymczasowy:</label>
-        <textarea id="prompt-temporary" rows="1"></textarea>
-        <label for="prompt-guidelines">Wytyczne dodatkowe:</label>
-        <textarea id="prompt-guidelines" class="border-2 border-indigo-400"></textarea>
-    </form>
+<body class="bg-slate-100 text-slate-800">
+
+    <div id="app" class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-md p-4 flex justify-between items-center z-10">
+            <h1 class="text-2xl font-bold text-slate-700">Menedżer Promptów</h1>
+            <div class="flex items-center space-x-2">
+                <button id="import-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                    Importuj (JSON)
+                </button>
+                <input type="file" id="import-file" class="hidden" accept=".json">
+                <button id="export-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                    Eksportuj (JSON)
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow flex flex-col lg:flex-row p-4 gap-4 overflow-hidden">
+            
+            <!-- Left Panel: Projects, Prompts, Versions -->
+            <div class="w-full lg:w-1/3 flex flex-col md:flex-row lg:flex-col gap-4">
+                <!-- Projects Column -->
+                <div class="flex-1 bg-white p-4 rounded-xl shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-semibold">Projekty</h2>
+                        <button id="add-project-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors">+</button>
+                    </div>
+                    <ul id="projects-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-2"></ul>
+                </div>
+
+                <!-- Prompts Column -->
+                <div class="flex-1 bg-white p-4 rounded-xl shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-semibold">Prompty</h2>
+                        <button id="add-prompt-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed">+</button>
+                    </div>
+                    <ul id="prompts-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-2"></ul>
+                </div>
+                
+                <!-- Versions Column -->
+                <div class="flex-1 bg-white p-4 rounded-xl shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-semibold">Wersje</h2>
+                        <button id="add-version-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed">+</button>
+                    </div>
+                    <ul id="versions-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-2"></ul>
+                </div>
+            </div>
+
+            <!-- Right Panel: Editor -->
+            <div class="w-full lg:w-2/3 bg-white p-4 rounded-xl shadow-sm flex flex-col gap-4">
+                <div id="editor-view" class="flex-grow flex flex-col gap-4 hidden">
+                    <!-- Temporary Content -->
+                    <div>
+                        <label for="temp-content" class="block text-sm font-medium text-slate-600 mb-1">Treść tymczasowa (nie jest zapisywana)</label>
+                        <textarea id="temp-content" rows="3" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"></textarea>
+                        <div class="flex justify-end mt-2">
+                             <button id="copy-btn-1" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
+                                Kopiuj cały prompt
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Prompt Content -->
+                    <div class="flex-grow flex flex-col">
+                        <label for="prompt-content" class="block text-sm font-medium text-slate-600 mb-1">Treść promptu (zapisywana automatycznie)</label>
+                        <textarea id="prompt-content" class="w-full h-full flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none"></textarea>
+                    </div>
+                    
+                    <!-- Combined Output -->
+                    <div class="flex-grow flex flex-col">
+                        <label for="combined-output" class="block text-sm font-medium text-slate-600 mb-1">Końcowy prompt (podgląd)</label>
+                        <textarea id="combined-output" readonly class="w-full h-full flex-grow p-3 border bg-slate-50 border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none custom-scrollbar"></textarea>
+                         <div class="flex justify-end mt-2">
+                             <button id="copy-btn-2" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
+                                Kopiuj cały prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="placeholder-view" class="flex-grow flex items-center justify-center text-center text-slate-500">
+                    <div>
+                        <h3 class="text-xl font-semibold">Witaj w Menedżerze Promptów!</h3>
+                        <p class="mt-2">Dodaj swój pierwszy projekt, aby zacząć.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Custom Modal for confirmation -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h3 id="modal-title" class="text-lg font-bold mb-4">Czy na pewno?</h3>
+            <p id="modal-text" class="text-slate-600 mb-6">Tej operacji nie można cofnąć.</p>
+            <div class="flex justify-end space-x-4">
+                <button id="modal-cancel" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-semibold">Anuluj</button>
+                <button id="modal-confirm" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold">Usuń</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- STATE MANAGEMENT ---
+        let state = {
+            projects: [],
+            selectedProjectId: null,
+            selectedPromptId: null,
+            selectedVersionId: null,
+        };
+
+        // --- DOM ELEMENTS ---
+        const projectsList = document.getElementById('projects-list');
+        const promptsList = document.getElementById('prompts-list');
+        const versionsList = document.getElementById('versions-list');
+        const addProjectBtn = document.getElementById('add-project-btn');
+        const addPromptBtn = document.getElementById('add-prompt-btn');
+        const addVersionBtn = document.getElementById('add-version-btn');
+        const promptContent = document.getElementById('prompt-content');
+        const tempContent = document.getElementById('temp-content');
+        const combinedOutput = document.getElementById('combined-output');
+        const copyBtn1 = document.getElementById('copy-btn-1');
+        const copyBtn2 = document.getElementById('copy-btn-2');
+        const editorView = document.getElementById('editor-view');
+        const placeholderView = document.getElementById('placeholder-view');
+        const importBtn = document.getElementById('import-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const importFile = document.getElementById('import-file');
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalText = document.getElementById('modal-text');
+        const modalConfirm = document.getElementById('modal-confirm');
+        const modalCancel = document.getElementById('modal-cancel');
+
+        let confirmationCallback = null;
+
+        // --- DATA PERSISTENCE ---
+        const saveData = () => {
+            try {
+                localStorage.setItem('promptManagerData', JSON.stringify(state));
+            } catch (e) {
+                console.error("Error saving data to localStorage:", e);
+                alert("Nie udało się zapisać danych. Pamięć lokalna może być pełna.");
+            }
+        };
+
+        const loadData = () => {
+            const data = localStorage.getItem('promptManagerData');
+            if (data) {
+                state = JSON.parse(data);
+                // Ensure backward compatibility if some properties are missing
+                if (!state.projects) state.projects = [];
+                if (!state.selectedProjectId) state.selectedProjectId = null;
+                if (!state.selectedPromptId) state.selectedPromptId = null;
+                if (!state.selectedVersionId) state.selectedVersionId = null;
+            }
+        };
+
+        // --- UTILITY FUNCTIONS ---
+        const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        const findProject = (projectId) => state.projects.find(p => p.id === projectId);
+        const findPrompt = (projectId, promptId) => findProject(projectId)?.prompts.find(p => p.id === promptId);
+        const findVersion = (projectId, promptId, versionId) => findPrompt(projectId, promptId)?.versions.find(v => v.id === versionId);
+        
+        const getSelectedProject = () => findProject(state.selectedProjectId);
+        const getSelectedPrompt = () => findPrompt(state.selectedProjectId, state.selectedPromptId);
+        const getSelectedVersion = () => findVersion(state.selectedProjectId, state.selectedPromptId, state.selectedVersionId);
+
+
+        // --- RENDER FUNCTIONS ---
+        const renderAll = () => {
+            renderProjects();
+            renderPrompts();
+            renderVersions();
+            renderEditor();
+            updateButtonStates();
+        };
+
+        const createListItem = ({ id, name, type, selected, onDelete, onSelect, onNameUpdate }) => {
+            const li = document.createElement('li');
+            li.className = `group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${selected ? 'bg-indigo-100 text-indigo-800 font-semibold' : 'hover:bg-slate-100'}`;
+            li.dataset.id = id;
+            li.dataset.type = type;
+            li.draggable = true;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = name;
+            nameSpan.className = 'flex-grow truncate';
+            li.appendChild(nameSpan);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>`;
+            deleteBtn.className = 'text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-2';
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation();
+                onDelete(id);
+            };
+            li.appendChild(deleteBtn);
+
+            li.onclick = () => onSelect(id);
+
+            nameSpan.ondblclick = (e) => {
+                e.stopPropagation();
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = name;
+                input.className = 'w-full bg-transparent border-b-2 border-indigo-500 focus:outline-none';
+                nameSpan.replaceWith(input);
+                input.focus();
+                
+                const saveName = () => {
+                    const newName = input.value.trim();
+                    if (newName && newName !== name) {
+                        onNameUpdate(id, newName);
+                    } else {
+                        input.replaceWith(nameSpan); // Restore original if no change
+                    }
+                };
+                
+                input.onblur = saveName;
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') input.blur();
+                    if (e.key === 'Escape') {
+                        input.value = name;
+                        input.blur();
+                    }
+                };
+            };
+
+            return li;
+        };
+        
+        const renderProjects = () => {
+            projectsList.innerHTML = '';
+            state.projects.forEach(project => {
+                const li = createListItem({
+                    id: project.id,
+                    name: project.name,
+                    type: 'project',
+                    selected: project.id === state.selectedProjectId,
+                    onDelete: (id) => showConfirmation('Usunąć projekt?', `Spowoduje to usunięcie wszystkich promptów i wersji w projekcie "${project.name}".`, () => deleteProject(id)),
+                    onSelect: selectProject,
+                    onNameUpdate: updateProjectName
+                });
+                projectsList.appendChild(li);
+            });
+        };
+
+        const renderPrompts = () => {
+            promptsList.innerHTML = '';
+            const project = getSelectedProject();
+            if (project && project.prompts) {
+                project.prompts.forEach(prompt => {
+                    const li = createListItem({
+                        id: prompt.id,
+                        name: prompt.name,
+                        type: 'prompt',
+                        selected: prompt.id === state.selectedPromptId,
+                        onDelete: (id) => showConfirmation('Usunąć prompt?', `Spowoduje to usunięcie wszystkich wersji w prompcie "${prompt.name}".`, () => deletePrompt(id)),
+                        onSelect: selectPrompt,
+                        onNameUpdate: updatePromptName
+                    });
+                    promptsList.appendChild(li);
+                });
+            }
+        };
+
+        const renderVersions = () => {
+            versionsList.innerHTML = '';
+            const prompt = getSelectedPrompt();
+            if (prompt && prompt.versions) {
+                prompt.versions.forEach(version => {
+                    const li = createListItem({
+                        id: version.id,
+                        name: version.name,
+                        type: 'version',
+                        selected: version.id === state.selectedVersionId,
+                        onDelete: (id) => showConfirmation('Usunąć wersję?', `Czy na pewno chcesz usunąć wersję "${version.name}"?`, () => deleteVersion(id)),
+                        onSelect: selectVersion,
+                        onNameUpdate: updateVersionName
+                    });
+                    versionsList.appendChild(li);
+                });
+            }
+        };
+
+        const renderEditor = () => {
+            const version = getSelectedVersion();
+            if (version) {
+                editorView.classList.remove('hidden');
+                placeholderView.classList.add('hidden');
+                promptContent.value = version.content || '';
+                updateCombinedOutput();
+            } else {
+                editorView.classList.add('hidden');
+                placeholderView.classList.remove('hidden');
+                promptContent.value = '';
+                tempContent.value = '';
+                combinedOutput.value = '';
+            }
+        };
+
+        const updateButtonStates = () => {
+            addPromptBtn.disabled = !state.selectedProjectId;
+            addVersionBtn.disabled = !state.selectedPromptId;
+        };
+
+        // --- EVENT HANDLERS & ACTIONS ---
+
+        // Selection
+        const selectProject = (projectId) => {
+            if (state.selectedProjectId !== projectId) {
+                state.selectedProjectId = projectId;
+                state.selectedPromptId = null;
+                state.selectedVersionId = null;
+                renderAll();
+            }
+        };
+
+        const selectPrompt = (promptId) => {
+            if (state.selectedPromptId !== promptId) {
+                state.selectedPromptId = promptId;
+                state.selectedVersionId = null;
+                const prompt = getSelectedPrompt();
+                if (prompt && prompt.versions && prompt.versions.length > 0) {
+                    state.selectedVersionId = prompt.versions[0].id;
+                }
+                renderAll();
+            }
+        };
+
+        const selectVersion = (versionId) => {
+            if (state.selectedVersionId !== versionId) {
+                state.selectedVersionId = versionId;
+                renderAll();
+            }
+        };
+
+        // Add
+        addProjectBtn.onclick = () => {
+            const newProject = {
+                id: generateId(),
+                name: `Nowy Projekt ${state.projects.length + 1}`,
+                prompts: []
+            };
+            state.projects.push(newProject);
+            selectProject(newProject.id);
+            saveData();
+        };
+
+        addPromptBtn.onclick = () => {
+            const project = getSelectedProject();
+            if (project) {
+                const newPrompt = {
+                    id: generateId(),
+                    name: `Nowy Prompt ${project.prompts.length + 1}`,
+                    versions: []
+                };
+                project.prompts.push(newPrompt);
+                selectPrompt(newPrompt.id);
+                saveData();
+            }
+        };
+
+        addVersionBtn.onclick = () => {
+            const prompt = getSelectedPrompt();
+            if (prompt) {
+                const newVersion = {
+                    id: generateId(),
+                    name: `Wersja ${prompt.versions.length + 1}`,
+                    content: ''
+                };
+                prompt.versions.push(newVersion);
+                selectVersion(newVersion.id);
+                saveData();
+            }
+        };
+
+        // Delete
+        const deleteProject = (projectId) => {
+            state.projects = state.projects.filter(p => p.id !== projectId);
+            if (state.selectedProjectId === projectId) {
+                state.selectedProjectId = null;
+                state.selectedPromptId = null;
+                state.selectedVersionId = null;
+            }
+            renderAll();
+            saveData();
+        };
+
+        const deletePrompt = (promptId) => {
+            const project = getSelectedProject();
+            if (project) {
+                project.prompts = project.prompts.filter(p => p.id !== promptId);
+                if (state.selectedPromptId === promptId) {
+                    state.selectedPromptId = null;
+                    state.selectedVersionId = null;
+                }
+                renderAll();
+                saveData();
+            }
+        };
+
+        const deleteVersion = (versionId) => {
+            const prompt = getSelectedPrompt();
+            if (prompt) {
+                const versionIndex = prompt.versions.findIndex(v => v.id === versionId);
+                prompt.versions = prompt.versions.filter(v => v.id !== versionId);
+                if (state.selectedVersionId === versionId) {
+                    state.selectedVersionId = null;
+                    if (prompt.versions.length > 0) {
+                        // Select previous or first version
+                        const newIndex = Math.max(0, versionIndex - 1);
+                        state.selectedVersionId = prompt.versions[newIndex].id;
+                    }
+                }
+                renderAll();
+                saveData();
+            }
+        };
+
+        // Update
+        const updateProjectName = (id, newName) => {
+            const project = findProject(id);
+            if (project) {
+                project.name = newName;
+                renderProjects();
+                saveData();
+            }
+        };
+
+        const updatePromptName = (id, newName) => {
+            const prompt = findPrompt(state.selectedProjectId, id);
+            if (prompt) {
+                prompt.name = newName;
+                renderPrompts();
+                saveData();
+            }
+        };
+
+        const updateVersionName = (id, newName) => {
+            const version = findVersion(state.selectedProjectId, state.selectedPromptId, id);
+            if (version) {
+                version.name = newName;
+                renderVersions();
+                saveData();
+            }
+        };
+
+        promptContent.oninput = () => {
+            const version = getSelectedVersion();
+            if (version) {
+                version.content = promptContent.value;
+                updateCombinedOutput();
+                saveData();
+            }
+        };
+
+        tempContent.oninput = updateCombinedOutput;
+
+        function updateCombinedOutput() {
+            const main = promptContent.value || '';
+            const temp = tempContent.value || '';
+            combinedOutput.value = `${main}\n\n${temp}`.trim();
+        }
+
+        // Copy
+        const copyToClipboard = (btn) => {
+            if (!combinedOutput.value) return;
+            navigator.clipboard.writeText(combinedOutput.value).then(() => {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = 'Skopiowano!';
+                btn.classList.add('bg-green-500');
+                btn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-green-500');
+                    btn.classList.add('bg-teal-500', 'hover:bg-teal-600');
+                }, 2000);
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+                alert('Nie udało się skopiować tekstu.');
+            });
+        };
+        copyBtn1.onclick = () => copyToClipboard(copyBtn1);
+        copyBtn2.onclick = () => copyToClipboard(copyBtn2);
+
+
+        // Import / Export
+        exportBtn.onclick = () => {
+            const dataStr = JSON.stringify(state, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `prompt-manager-backup-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        };
+
+        importBtn.onclick = () => importFile.click();
+        importFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedState = JSON.parse(event.target.result);
+                    // Basic validation
+                    if (importedState && Array.isArray(importedState.projects)) {
+                        showConfirmation(
+                            'Importować dane?', 
+                            'Spowoduje to nadpisanie wszystkich obecnych projektów i promptów. Kontynuować?',
+                            () => {
+                                state = importedState;
+                                // Reset selections
+                                state.selectedProjectId = null;
+                                state.selectedPromptId = null;
+                                state.selectedVersionId = null;
+                                saveData();
+                                renderAll();
+                                alert('Dane zostały pomyślnie zaimportowane.');
+                            }
+                        );
+                    } else {
+                        throw new Error('Invalid file format');
+                    }
+                } catch (err) {
+                    console.error('Error importing file:', err);
+                    alert('Błąd podczas importu pliku. Upewnij się, że plik jest poprawnym plikiem JSON z tego menedżera.');
+                } finally {
+                    // Reset file input to allow re-importing the same file
+                    importFile.value = '';
+                }
+            };
+            reader.readAsText(file);
+        };
+        
+        // Confirmation Modal
+        const showConfirmation = (title, text, callback) => {
+            modalTitle.textContent = title;
+            modalText.textContent = text;
+            confirmationCallback = callback;
+            confirmationModal.classList.remove('hidden');
+        };
+
+        modalConfirm.onclick = () => {
+            if (confirmationCallback) {
+                confirmationCallback();
+            }
+            confirmationModal.classList.add('hidden');
+            confirmationCallback = null;
+        };
+
+        modalCancel.onclick = () => {
+            confirmationModal.classList.add('hidden');
+            confirmationCallback = null;
+        };
+        
+        // Drag and Drop
+        let draggedItem = null;
+
+        const handleDragStart = (e) => {
+            draggedItem = e.target;
+            setTimeout(() => {
+                e.target.classList.add('dragging');
+            }, 0);
+        };
+
+        const handleDragEnd = (e) => {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            draggedItem = null;
+        };
+
+        const handleDragOver = (e) => {
+            e.preventDefault();
+            const target = e.target.closest('li');
+            if (target && target.dataset.type === draggedItem.dataset.type) {
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                target.classList.add('drag-over');
+            }
+        };
+
+        const handleDrop = (e) => {
+            e.preventDefault();
+            const dropTarget = e.target.closest('li');
+            if (!dropTarget || !draggedItem || dropTarget.dataset.type !== draggedItem.dataset.type) {
+                return;
+            }
+
+            const type = draggedItem.dataset.type;
+            const draggedId = draggedItem.dataset.id;
+            const targetId = dropTarget.dataset.id;
+
+            let list;
+            if (type === 'project') {
+                list = state.projects;
+            } else if (type === 'prompt') {
+                const project = getSelectedProject();
+                if (project) list = project.prompts;
+            }
+            // Note: Drag/drop for versions is not implemented for simplicity, but could be added.
+
+            if (!list) return;
+
+            const draggedIndex = list.findIndex(item => item.id === draggedId);
+            const targetIndex = list.findIndex(item => item.id === targetId);
+
+            if (draggedIndex !== -1 && targetIndex !== -1) {
+                const [removed] = list.splice(draggedIndex, 1);
+                list.splice(targetIndex, 0, removed);
+
+                saveData();
+                if (type === 'project') renderProjects();
+                if (type === 'prompt') renderPrompts();
+            }
+        };
+
+        projectsList.addEventListener('dragstart', handleDragStart);
+        projectsList.addEventListener('dragend', handleDragEnd);
+        projectsList.addEventListener('dragover', handleDragOver);
+        projectsList.addEventListener('drop', handleDrop);
+
+        promptsList.addEventListener('dragstart', handleDragStart);
+        promptsList.addEventListener('dragend', handleDragEnd);
+        promptsList.addEventListener('dragover', handleDragOver);
+        promptsList.addEventListener('drop', handleDrop);
+
+
+        // --- INITIALIZATION ---
+        loadData();
+        renderAll();
+    });
+    </script>
 </body>
 </html>
