@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,6 +16,7 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     
     <style>
+        /* Initial font size is set here and can be overridden by JS */
         html {
             font-size: 85%;
         }
@@ -86,15 +87,51 @@
         .ql-editor li {
             margin-bottom: 0.5rem;
         }
+        
+        /* Dark Mode Styles */
+        .dark .bg-slate-100 { background-color: #0f172a; }
+        .dark .text-slate-800 { color: #e2e8f0; }
+        .dark .bg-white { background-color: #1e293b; }
+        .dark .text-slate-700 { color: #cbd5e1; }
+        .dark .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.4); }
+        .dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2); }
+        .dark .bg-slate-50 { background-color: #334155; }
+        .dark .border-slate-300 { border-color: #475569; }
+        .dark #temp-content { background-color: #334155; border-color: #475569; color: #e2e8f0; }
+        .dark .text-slate-600 { color: #94a3b8; }
+        .dark .text-slate-500 { color: #94a3b8; }
+        .dark .hover\:bg-slate-100:hover { background-color: #334155; }
+        .dark .bg-indigo-100 { background-color: #4338ca; }
+        .dark .text-indigo-800 { color: #e0e7ff; }
+        .dark .bg-amber-200 { background-color: #b45309; }
+        .dark .text-amber-800 { color: #fef3c7; }
+        .dark .hover\:bg-amber-300:hover { background-color: #c2410c; }
+        .dark .bg-slate-200 { background-color: #475569; }
+        .dark .hover\:bg-slate-300:hover { background-color: #64748b; }
+        .dark .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .dark .snippet-dropdown { background-color: #1e293b; border-color: #475569; }
+        .dark .snippet-item:hover { background-color: #334155; }
+        
+        /* Dark Mode for Quill */
+        .dark .ql-snow .ql-stroke { color: #e2e8f0; }
+        .dark .ql-snow .ql-picker-label { color: #e2e8f0; }
+        .dark .ql-snow .ql-picker-options { background-color: #334155; border-color: #475569; }
+        .dark .ql-snow .ql-picker-item:hover { color: #e0e7ff; }
+        .dark .ql-toolbar.ql-snow { border-color: #475569; }
+        .dark .ql-container.ql-snow { border-color: #475569; }
+        .dark .ql-editor { color: #e2e8f0; }
+        
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800">
+<body class="bg-slate-100 text-slate-800 transition-colors duration-300">
 
     <div id="app" class="flex flex-col h-screen">
         <!-- Header -->
         <header class="bg-white shadow-md p-4 flex justify-between items-center z-10">
             <h1 class="text-2xl font-bold text-slate-700">Menedżer Promptów</h1>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-4">
                 <button id="manage-snippets-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Zarządzaj wstawkami</button>
                 <button id="import-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
                     Importuj (JSON)
@@ -103,8 +140,27 @@
                 <button id="export-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
                     Eksportuj (JSON)
                 </button>
+                <div class="flex items-center space-x-1 rounded-full p-1 bg-slate-100 dark:bg-slate-700">
+                    <button id="font-size-down-btn" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+                    </button>
+                    <button id="font-size-up-btn" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+                <button id="theme-toggle-btn" class="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
             </div>
         </header>
+        
+        <!-- Favorites Bar -->
+        <div id="favorites-bar" class="bg-white shadow-sm p-2 hidden">
+            <div id="favorites-container" class="flex items-center gap-2 overflow-x-auto custom-scrollbar">
+                <!-- Favorite prompts will be rendered here -->
+            </div>
+        </div>
 
         <!-- Main Content -->
         <main class="flex-grow flex flex-col lg:flex-row p-4 gap-4 overflow-hidden">
@@ -263,6 +319,17 @@
         const exportBtn = document.getElementById('export-btn');
         const importFile = document.getElementById('import-file');
         
+        // Theme Elements
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const themeIconLight = document.getElementById('theme-icon-light');
+        const themeIconDark = document.getElementById('theme-icon-dark');
+        const fontSizeUpBtn = document.getElementById('font-size-up-btn');
+        const fontSizeDownBtn = document.getElementById('font-size-down-btn');
+        
+        // Favorites Elements
+        const favoritesBar = document.getElementById('favorites-bar');
+        const favoritesContainer = document.getElementById('favorites-container');
+        
         // Snippet Elements
         const manageSnippetsBtn = document.getElementById('manage-snippets-btn');
         const snippetModal = document.getElementById('snippet-modal');
@@ -321,7 +388,17 @@
                     const parsedData = JSON.parse(data);
                     if (parsedData && Array.isArray(parsedData.projects)) {
                         state = parsedData;
-                        if (!state.snippets) state.snippets = []; // Backward compatibility
+                        if (!state.snippets) state.snippets = [];
+                        // Backward compatibility for isFavorite
+                        state.projects.forEach(p => {
+                            if (p.prompts) {
+                                p.prompts.forEach(pr => {
+                                    if (pr.isFavorite === undefined) {
+                                        pr.isFavorite = false;
+                                    }
+                                });
+                            }
+                        });
                     }
                 } catch (e) {
                     console.error("Error parsing data from localStorage:", e);
@@ -346,7 +423,6 @@
             if (!text) return '';
             return text.replace(/\{\{([^}]+)\}\}/g, (match, snippetName) => {
                 const snippet = state.snippets.find(s => s.name === snippetName.trim());
-                // Snippet content is HTML, so it will be rendered as such
                 return snippet ? snippet.content : match; 
             });
         };
@@ -463,15 +539,58 @@
             renderPrompts();
             renderVersions();
             renderEditor();
+            renderFavoritesBar();
             updateButtonStates();
         };
+        
+        const renderFavoritesBar = () => {
+            favoritesContainer.innerHTML = '';
+            const favorites = [];
+            state.projects.forEach(project => {
+                project.prompts.forEach(prompt => {
+                    if (prompt.isFavorite) {
+                        favorites.push({ ...prompt, projectId: project.id });
+                    }
+                });
+            });
 
-        const createListItem = ({ id, name, type, selected, onDelete, onSelect, onNameUpdate }) => {
+            if (favorites.length > 0) {
+                favoritesBar.classList.remove('hidden');
+                favorites.forEach(fav => {
+                    const favButton = document.createElement('button');
+                    favButton.className = 'px-4 py-2 bg-amber-200 text-amber-800 rounded-full text-base font-bold whitespace-nowrap hover:bg-amber-300 transition-colors';
+                    favButton.textContent = fav.name;
+                    favButton.dataset.projectId = fav.projectId;
+                    favButton.dataset.promptId = fav.id;
+                    favButton.onclick = () => {
+                        selectProject(fav.projectId);
+                        renderPrompts(); 
+                        selectPrompt(fav.id);
+                    };
+                    favoritesContainer.appendChild(favButton);
+                });
+            } else {
+                favoritesBar.classList.add('hidden');
+            }
+        };
+
+        const createListItem = ({ id, name, type, selected, onDelete, onSelect, onNameUpdate, isFavorite, onFavoriteToggle }) => {
             const li = document.createElement('li');
             li.className = `group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${selected ? 'bg-indigo-100 text-indigo-800 font-semibold' : 'hover:bg-slate-100'}`;
             li.dataset.id = id;
             li.dataset.type = type;
             li.draggable = true;
+
+            if (type === 'prompt') {
+                const favoriteBtn = document.createElement('button');
+                favoriteBtn.className = 'mr-2 text-slate-400 hover:text-amber-500';
+                favoriteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="${isFavorite ? '#f59e0b' : 'currentColor'}"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>`;
+                favoriteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    onFavoriteToggle(id);
+                };
+                li.appendChild(favoriteBtn);
+            }
 
             const nameSpan = document.createElement('span');
             nameSpan.textContent = name;
@@ -546,9 +665,18 @@
                         name: prompt.name,
                         type: 'prompt',
                         selected: prompt.id === state.selectedPromptId,
+                        isFavorite: prompt.isFavorite,
                         onDelete: (id) => showConfirmation('Usunąć prompt?', `Spowoduje to usunięcie wszystkich wersji w prompcie "${prompt.name}".`, () => deletePrompt(id)),
                         onSelect: selectPrompt,
-                        onNameUpdate: updatePromptName
+                        onNameUpdate: updatePromptName,
+                        onFavoriteToggle: (id) => {
+                            const p = findPrompt(state.selectedProjectId, id);
+                            if (p) {
+                                p.isFavorite = !p.isFavorite;
+                                saveData();
+                                renderAll();
+                            }
+                        }
                     });
                     promptsList.appendChild(li);
                 });
@@ -646,7 +774,8 @@
                 const newPrompt = {
                     id: generateId(),
                     name: `Nowy Prompt ${project.prompts.length + 1}`,
-                    versions: []
+                    versions: [],
+                    isFavorite: false
                 };
                 project.prompts.unshift(newPrompt);
                 selectPrompt(newPrompt.id);
@@ -764,7 +893,6 @@
             const tempText = temp ? `\n\n${temp}` : '';
             const finalPlainText = combinedOutputPreview.innerText + tempText;
             
-            // Set a data attribute to store plain text for copying
             combinedOutputPreview.dataset.plainText = finalPlainText.trim();
         }
 
@@ -951,11 +1079,11 @@
         cancelSnippetEditBtn.onclick = resetSnippetForm;
 
         snippetsListModal.addEventListener('click', (e) => {
-            if (e.target.classList.contains('edit-snippet-btn')) {
-                handleEditSnippet(e.target.dataset.id);
+            if (e.target.closest('.edit-snippet-btn')) {
+                handleEditSnippet(e.target.closest('.edit-snippet-btn').dataset.id);
             }
-            if (e.target.classList.contains('delete-snippet-btn')) {
-                handleDeleteSnippet(e.target.dataset.id);
+            if (e.target.closest('.delete-snippet-btn')) {
+                handleDeleteSnippet(e.target.closest('.delete-snippet-btn').dataset.id);
             }
         });
 
@@ -970,9 +1098,59 @@
                 snippetDropdown.classList.add('hidden');
             }
         });
+        
+        // Theme & Font Size Logic
+        const applyTheme = (theme) => {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                themeIconLight.classList.add('hidden');
+                themeIconDark.classList.remove('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeIconLight.classList.remove('hidden');
+                themeIconDark.classList.add('hidden');
+            }
+        };
 
+        themeToggleBtn.onclick = () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            const newTheme = isDark ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        };
+        
+        const applyFontSize = (size) => {
+            document.documentElement.style.fontSize = `${size}%`;
+        };
+
+        const changeFontSize = (delta) => {
+            let currentSize = parseInt(localStorage.getItem('fontSize') || '85');
+            currentSize += delta;
+            if (currentSize < 50) currentSize = 50; // min size
+            if (currentSize > 150) currentSize = 150; // max size
+            localStorage.setItem('fontSize', currentSize);
+            applyFontSize(currentSize);
+        };
+        
+        fontSizeUpBtn.onclick = () => changeFontSize(1);
+        fontSizeDownBtn.onclick = () => changeFontSize(-1);
 
         // --- INITIALIZATION ---
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme) {
+            applyTheme(savedTheme);
+        } else if (systemPrefersDark) {
+            applyTheme('dark');
+        } else {
+            applyTheme('light');
+        }
+        
+        const savedFontSize = localStorage.getItem('fontSize');
+        if (savedFontSize) {
+            applyFontSize(savedFontSize);
+        }
+
         loadData();
         renderAll();
     });
