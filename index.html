@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Menedżer Promptów</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -39,8 +38,6 @@
             font-size: 0.95rem; /* 15px */
             font-weight: 600;
         }
-        .diff-added { background-color: rgba(16, 185, 129, 0.2); }
-        .diff-removed { background-color: rgba(239, 68, 68, 0.2); text-decoration: line-through; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800">
@@ -119,10 +116,33 @@
         </section>
     </div>
 
-    <!-- Modals -->
-    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
-    <div id="snippets-modal" class="modal hidden fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"></div>
-    <div id="diff-modal" class="modal hidden fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"></div>
+    <!-- Modal do zarządzania wstawkami -->
+    <div id="snippets-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-xl font-bold">Zarządzaj wstawkami</h3>
+                <button id="modal-close-btn" class="text-2xl font-bold text-slate-500 hover:text-slate-800">&times;</button>
+            </div>
+            <div class="flex-grow p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div id="snippets-list-container" class="flex flex-col gap-2"></div>
+                <div id="snippet-form-container">
+                    <h4 class="text-lg font-semibold mb-2">Dodaj / Edytuj Wstawkę</h4>
+                    <input type="hidden" id="snippet-id-input">
+                    <div class="mb-4">
+                        <label for="snippet-name-input" class="block text-sm font-medium text-slate-700 mb-1">Nazwa (bez spacji, np. "moje_wytyczne")</label>
+                        <input type="text" id="snippet-name-input" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm">
+                    </div>
+                    <div class="mb-4">
+                        <label for="snippet-content-input" class="block text-sm font-medium text-slate-700 mb-1">Treść</label>
+                        <textarea id="snippet-content-input" rows="8" class="w-full p-2 border border-slate-300 rounded-md shadow-sm"></textarea>
+                    </div>
+                    <button id="save-snippet-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Zapisz Wstawkę</button>
+                    <button id="clear-snippet-form-btn" class="px-4 py-2 bg-slate-500 text-white font-semibold rounded-lg shadow-md hover:bg-slate-600">Wyczyść</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container" class="fixed bottom-5 right-5 z-50"></div>
     
     <script>
@@ -143,21 +163,25 @@
         const searchInput = document.getElementById('search-input');
         const toastContainer = document.getElementById('toast-container');
         const snippetsModal = document.getElementById('snippets-modal');
-        const diffModal = document.getElementById('diff-modal');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
         const manageSnippetsBtn = document.getElementById('manage-snippets-btn');
+        const saveSnippetBtn = document.getElementById('save-snippet-btn');
+        const clearSnippetFormBtn = document.getElementById('clear-snippet-form-btn');
+        const snippetsListContainer = document.getElementById('snippets-list-container');
+        const snippetIdInput = document.getElementById('snippet-id-input');
+        const snippetNameInput = document.getElementById('snippet-name-input');
+        const snippetContentInput = document.getElementById('snippet-content-input');
         const toggleWorkspaceBtn = document.getElementById('toggle-workspace-btn');
         const workspaceContent = document.getElementById('workspace-content');
         const workspaceIconCollapse = document.getElementById('workspace-icon-collapse');
         const workspaceIconExpand = document.getElementById('workspace-icon-expand');
         const copyPromptBtn = document.getElementById('copy-prompt-btn');
-        const modalBackdrop = document.getElementById('modal-backdrop');
 
         // --- STAN APLIKACJI ---
         let data = { projects: [], snippets: [] };
         let activeProjectId = null;
         let activePromptId = null;
         let activeVersionId = null;
-        let versionToCompareId = null;
         let hasUnsavedChanges = false;
         let autoSaveTimer = null;
         const AUTOSAVE_DELAY = 2 * 60 * 1000; // 2 minuty
@@ -296,7 +320,7 @@
                 return;
             }
             const sortedVersions = [...activePrompt.versions].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            sortedVersions.forEach((version, index) => {
+            sortedVersions.forEach(version => {
                 const isActive = version.id === activeVersionId;
                 const versionEl = document.createElement('div');
                 versionEl.className = `version-item flex justify-between items-center p-3 rounded-lg transition-colors duration-200 ${isActive ? 'bg-indigo-100 text-indigo-800' : 'hover:bg-slate-100'}`;
@@ -308,20 +332,11 @@
                 nameContainer.ondblclick = (e) => handleEditVersionName(e, version.id);
                 versionEl.appendChild(nameContainer);
 
-                const buttonsContainer = document.createElement('div');
-                if (index < sortedVersions.length -1) { // Don't show for the last version
-                    const compareBtn = document.createElement('button');
-                    compareBtn.innerHTML = '&#10066;'; // Compare icon
-                    compareBtn.className = `compare-btn text-slate-400 hover:text-indigo-600 font-bold px-2 ${versionToCompareId === version.id ? 'text-indigo-600' : ''}`;
-                    compareBtn.onclick = (e) => { e.stopPropagation(); handleCompareVersion(version.id); };
-                    buttonsContainer.appendChild(compareBtn);
-                }
                 const deleteBtn = document.createElement('button');
                 deleteBtn.innerHTML = '&#x1F5D1;'; // ikona kosza
                 deleteBtn.className = 'text-slate-400 hover:text-red-600 font-bold px-2';
                 deleteBtn.onclick = (e) => confirmDeleteVersion(e.currentTarget, version.id);
-                buttonsContainer.appendChild(deleteBtn);
-                versionEl.appendChild(buttonsContainer);
+                versionEl.appendChild(deleteBtn);
 
                 versionsList.appendChild(versionEl);
             });
