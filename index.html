@@ -69,6 +69,7 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
+            min-height: 0;
         }
         .ql-toolbar.ql-snow {
             border-radius: 0.5rem 0.5rem 0 0;
@@ -253,8 +254,8 @@
             <h2 class="text-xl font-bold">Zarządzaj wstawkami (snippetami)</h2>
             <div class="flex flex-col md:flex-row gap-4 flex-grow min-h-0">
                 <!-- Form -->
-                <div class="w-full md:w-1/2 flex flex-col gap-4">
-                    <h3 id="snippet-form-title" class="text-lg font-semibold">Dodaj nową wstawkę</h3>
+                <div class="w-full md:w-2/3 flex flex-col gap-4">
+                    <h3 id="snippet-form-title" class="text-lg font-semibold">Nowa wstawka</h3>
                     <input type="hidden" id="snippet-id-input">
                     <div>
                         <label for="snippet-name-input" class="block text-sm font-medium text-slate-600">Nazwa (bez spacji, np. 'formalny_ton')</label>
@@ -265,12 +266,12 @@
                         <div id="snippet-content-editor" class="mt-1 flex-grow"></div>
                     </div>
                     <div class="flex justify-end gap-2">
-                        <button id="cancel-snippet-edit-btn" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-semibold hidden">Anuluj</button>
+                        <button id="clear-snippet-form-btn" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-semibold hidden">Wyczyść</button>
                         <button id="save-snippet-btn" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-semibold">Zapisz</button>
                     </div>
                 </div>
                 <!-- List -->
-                <div class="w-full md:w-1/2 flex flex-col">
+                <div class="w-full md:w-1/3 flex flex-col">
                     <h3 class="text-lg font-semibold mb-2">Istniejące wstawki</h3>
                     <ul id="snippets-list-modal" class="flex-grow overflow-y-auto custom-scrollbar border rounded-lg p-2 space-y-2">
                         <!-- Snippets will be rendered here -->
@@ -341,7 +342,7 @@
         const snippetIdInput = document.getElementById('snippet-id-input');
         const snippetNameInput = document.getElementById('snippet-name-input');
         const saveSnippetBtn = document.getElementById('save-snippet-btn');
-        const cancelSnippetEditBtn = document.getElementById('cancel-snippet-edit-btn');
+        const clearSnippetFormBtn = document.getElementById('clear-snippet-form-btn');
         const snippetsListModal = document.getElementById('snippets-list-modal');
         const insertSnippetBtn = document.getElementById('insert-snippet-btn');
         const snippetDropdown = document.getElementById('snippet-dropdown');
@@ -455,7 +456,8 @@
             snippetIdInput.value = '';
             snippetNameInput.value = '';
             snippetEditor.root.innerHTML = '';
-            cancelSnippetEditBtn.classList.add('hidden');
+            saveSnippetBtn.textContent = 'Zapisz';
+            clearSnippetFormBtn.classList.add('hidden');
         };
         
         const handleSaveSnippet = () => {
@@ -498,7 +500,8 @@
                 snippetIdInput.value = snippet.id;
                 snippetNameInput.value = snippet.name;
                 snippetEditor.root.innerHTML = snippet.content;
-                cancelSnippetEditBtn.classList.remove('hidden');
+                saveSnippetBtn.textContent = 'Aktualizuj';
+                clearSnippetFormBtn.classList.remove('hidden');
             }
         };
 
@@ -1074,12 +1077,13 @@
 
         // Snippet Event Listeners
         manageSnippetsBtn.onclick = () => {
+            resetSnippetForm();
             renderSnippetsInModal();
             snippetModal.classList.remove('hidden');
         };
         closeSnippetModalBtn.onclick = () => snippetModal.classList.add('hidden');
         saveSnippetBtn.onclick = handleSaveSnippet;
-        cancelSnippetEditBtn.onclick = resetSnippetForm;
+        clearSnippetFormBtn.onclick = resetSnippetForm;
 
         snippetsListModal.addEventListener('click', (e) => {
             if (e.target.closest('.edit-snippet-btn')) {
