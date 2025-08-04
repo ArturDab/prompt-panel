@@ -1,17 +1,68 @@
-<html>
-<head>
-    <script>
-        // Other JavaScript code...
+const renderSnippetsModal = () => {
+    // Form template
+    snippetsModal.innerHTML = `
+        <div class="flex justify-between items-center p-4 border-b">
+            <h3 class="text-xl font-bold">Zarządzaj wstawkami</h3>
+            <button id="snippets-modal-close-btn" class="text-2xl font-bold text-slate-500 hover:text-slate-800">&times;</button>
+        </div>
+        <div class="flex flex-col md:flex-row gap-6 p-6 overflow-y-auto">
+            <div class="md:w-1/2">
+                <h4 class="font-bold mb-2">Lista wstawek</h4>
+                <ul id="snippets-list" class="space-y-2">
+                    ${
+                        data.snippets.length === 0
+                        ? '<li class="text-slate-400">Brak wstawek</li>'
+                        : data.snippets.map(snippet => `
+                            <li class="flex items-center justify-between border p-2 rounded">
+                                <span class="font-mono text-sm">${snippet.name}</span>
+                                <div>
+                                    <button class="edit-snippet-btn text-xs bg-blue-500 text-white px-2 py-1 rounded mr-1" data-id="${snippet.id}">Edytuj</button>
+                                    <button class="delete-snippet-btn text-xs bg-red-500 text-white px-2 py-1 rounded" data-id="${snippet.id}">Usuń</button>
+                                </div>
+                            </li>
+                        `).join('')
+                    }
+                </ul>
+            </div>
+            <div class="md:w-1/2">
+                <h4 class="font-bold mb-2">Dodaj / Edytuj wstawkę</h4>
+                <input type="hidden" id="snippet-id-input">
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1" for="snippet-name-input">Nazwa (bez spacji)</label>
+                    <input class="w-full border p-2 rounded" id="snippet-name-input" maxlength="30">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1" for="snippet-content-input">Treść</label>
+                    <textarea class="w-full border p-2 rounded" id="snippet-content-input" rows="3"></textarea>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <button id="save-snippet-btn" class="bg-green-600 text-white font-semibold px-4 py-2 rounded">Zapisz</button>
+                    <button id="clear-snippet-form-btn" class="bg-slate-400 text-white font-semibold px-4 py-2 rounded">Wyczyść</button>
+                </div>
+            </div>
+        </div>
+    `;
+    // Pokaż modal i tło
+    snippetsModal.classList.remove('hidden');
+    modalBackdrop.classList.remove('hidden');
 
-        // Initializing buttons
-        modalCloseBtn.addEventListener('click', handleCloseModal);
-        saveSnippetBtn.addEventListener('click', handleSaveSnippet);
-        clearSnippetFormBtn.addEventListener('click', clearSnippetForm);
+    // Inicjalizuj referencje do pól formularza
+    window.snippetIdInput = document.getElementById("snippet-id-input");
+    window.snippetNameInput = document.getElementById("snippet-name-input");
+    window.snippetContentInput = document.getElementById("snippet-content-input");
 
-        // Other JavaScript code...
-    </script>
-</head>
-<body>
-    <!-- HTML content... -->
-</body>
-</html>
+    // Eventy
+    document.getElementById('snippets-modal-close-btn').onclick = handleCloseModal;
+    document.getElementById('save-snippet-btn').onclick = handleSaveSnippet;
+    document.getElementById('clear-snippet-form-btn').onclick = clearSnippetForm;
+
+    // Edycja wstawki
+    document.querySelectorAll('.edit-snippet-btn').forEach(btn => {
+        btn.onclick = () => handleEditSnippet(Number(btn.dataset.id));
+    });
+    // Usuwanie wstawki
+    document.querySelectorAll('.delete-snippet-btn').forEach(btn => {
+        btn.onclick = () => handleDeleteSnippet(Number(btn.dataset.id));
+    });
+};
+// Naprawa obsługi modala Zarządzaj wstawkami: dynamiczne renderowanie, obsługa przycisków, edycja, usuwanie, zamykanie
