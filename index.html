@@ -11,8 +11,8 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         textarea { overflow-y: hidden; transition: height 0.2s ease-in-out; }
-        textarea, input { font-size: 0.75rem; /* 12px */ }
-        .version-item { font-size: 0.75rem; /* 12px */ }
+        textarea, input { font-size: 0.875rem; /* 14px */ }
+        .version-item { font-size: 0.875rem; /* 14px */ }
         @keyframes fadeInOut {
             0%, 100% { opacity: 0; transform: translateY(20px); }
             10%, 90% { opacity: 1; transform: translateY(0); }
@@ -124,8 +124,11 @@
                 <button id="modal-close-btn" class="text-2xl font-bold text-slate-500 hover:text-slate-800">&times;</button>
             </div>
             <div class="flex-grow p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div id="snippets-list-container" class="flex flex-col gap-2"></div>
-                <div id="snippet-form-container">
+                <div class="flex flex-col gap-4">
+                    <h4 class="text-lg font-semibold mb-2">Lista wstawek</h4>
+                    <div id="snippets-list-container" class="space-y-4"></div>
+                </div>
+                <div>
                     <h4 class="text-lg font-semibold mb-2">Dodaj / Edytuj Wstawkę</h4>
                     <input type="hidden" id="snippet-id-input">
                     <div class="mb-4">
@@ -205,10 +208,11 @@
                 const storedData = localStorage.getItem('promptManagerData_v6');
                 if (storedData) {
                     data = JSON.parse(storedData);
-                    if (!data.projects) { // Migracja ze starej struktury
-                        data = { projects: [{ id: Date.now(), name: "Projekt Domyślny", prompts: data.prompts || [] }], snippets: data.snippets || [] };
-                    }
+                    // Prosta migracja/walidacja
+                    if (!data.projects) data.projects = [];
+                    if (!data.snippets) data.snippets = [];
                 } else {
+                    // Inicjalizacja z przykładowymi danymi
                     const initialProjectId = Date.now();
                     data = {
                         projects: [{
@@ -243,6 +247,7 @@
 
         // --- FUNKCJE RENDERUJĄCE ---
         const render = () => { renderProjects(); renderTabs(); renderContent(); };
+        
         const renderProjects = () => {
             projectTabsContainer.innerHTML = '';
             if (data.projects.length === 0) {
@@ -265,6 +270,7 @@
                 projectTabsContainer.appendChild(tab);
             });
         };
+
         const renderTabs = () => {
             tabsContainer.innerHTML = '';
             const activeProject = data.projects.find(p => p.id === activeProjectId);
@@ -288,13 +294,14 @@
                 tabsContainer.appendChild(tab);
             });
         };
+
         const renderContent = () => {
             const promptSection = document.getElementById('prompt-section');
             const activeProject = data.projects.find(p => p.id === activeProjectId);
             
             if (!activeProject) {
                 promptSection.style.display = 'none';
-                mainContent.innerHTML = '';
+                mainContent.innerHTML = '<div class="text-center w-full"><h2 class="text-xl font-semibold text-slate-600">Witaj!</h2><p class="mt-2 text-slate-500">Stwórz swój pierwszy projekt, aby zacząć zarządzać promptami.</p></div>';
                 return;
             }
             
@@ -307,12 +314,13 @@
                 return;
             }
             mainContent.classList.remove('items-center', 'justify-center');
-            mainContent.innerHTML = '';
+            mainContent.innerHTML = ''; // Clear previous content
             mainContent.appendChild(versionsSidebar);
             mainContent.appendChild(editorSection);
             renderVersions(activePrompt);
             renderEditor(activePrompt);
         };
+
         const renderVersions = (activePrompt) => {
             versionsList.innerHTML = '';
             if (activePrompt.versions.length === 0) {
@@ -341,6 +349,7 @@
                 versionsList.appendChild(versionEl);
             });
         };
+
         const renderEditor = (activePrompt) => {
             editorSection.innerHTML = '';
             const activeVersion = activePrompt.versions.find(v => v.id === activeVersionId);
@@ -422,7 +431,7 @@
         
         // --- HANDLERY ZDARZEŃ ---
         const handleAddProject = () => {
-            const name = prompt("Podaj nazwę dla nowego projektu:", `Nowy projekt`);
+            const name = prompt("Podaj nazwę dla nowego projektu:", `Nowy projekt ${data.projects.length + 1}`);
             if (name) {
                 const newProject = { id: Date.now(), name: name, prompts: [] };
                 data.projects.push(newProject);
@@ -433,6 +442,7 @@
                 render();
             }
         };
+
         const handleDeleteProject = (projectId) => {
             if (confirm("Czy na pewno chcesz usunąć ten projekt i wszystkie jego prompty?")) {
                 data.projects = data.projects.filter(p => p.id !== projectId);
@@ -447,6 +457,7 @@
                 render();
             }
         };
+
         const handleProjectTabClick = (projectId) => {
             activeProjectId = projectId;
             const activeProject = data.projects.find(p => p.id === activeProjectId);
@@ -460,6 +471,7 @@
             }
             render();
         };
+
         const handleAddPrompt = () => {
             const activeProject = data.projects.find(p => p.id === activeProjectId);
             if (!activeProject) { showToast("Najpierw utwórz i wybierz projekt!", "error"); return; }
@@ -474,6 +486,7 @@
                 render();
             }
         };
+
         const handleDeletePrompt = (promptId) => {
             if (confirm("Czy na pewno chcesz usunąć ten prompt i całą jego historię wersji?")) {
                 const activeProject = data.projects.find(p => p.id === activeProjectId);
@@ -493,6 +506,7 @@
                 }
             }
         };
+
         const handleTabClick = (promptId) => {
             activePromptId = promptId;
             const activeProject = data.projects.find(p => p.id === activeProjectId);
@@ -500,11 +514,14 @@
             activeVersionId = activePrompt && activePrompt.versions.length > 0 ? activePrompt.versions.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0].id : null;
             render();
         };
+
         const handleVersionClick = (versionId) => {
             activeVersionId = versionId;
             render();
         };
+
         const handleManualSaveVersion = () => handleSaveVersion(true);
+
         const handleSaveVersion = (isManual = false) => {
             const activeProject = data.projects.find(p => p.id === activeProjectId);
             const activePrompt = activeProject?.prompts.find(p => p.id === activePromptId);
@@ -532,6 +549,7 @@
                 render();
             }
         };
+
         const confirmDeleteVersion = (button, versionId) => {
             if (button.dataset.confirming) {
                 handleDeleteVersion(versionId);
@@ -552,6 +570,7 @@
                 }
             }, 3000);
         };
+
         const handleDeleteVersion = (versionId) => {
             const activeProject = data.projects.find(p => p.id === activeProjectId);
             const activePrompt = activeProject?.prompts.find(p => p.id === activePromptId);
@@ -564,6 +583,7 @@
                 render();
             }
         };
+
         const handleEditVersionName = (e, versionId) => {
             const container = e.currentTarget;
             const currentName = container.textContent;
@@ -583,24 +603,22 @@
                         saveData();
                         renderVersions(activePrompt);
                     }
-                } else {
-                    container.textContent = currentName;
-                    container.style.display = 'block';
                 }
+                // Restore the original element in its place
+                container.textContent = newName || currentName;
+                input.replaceWith(container);
             };
             
             input.addEventListener('blur', saveName);
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') input.blur();
                 if (e.key === 'Escape') {
-                    container.textContent = currentName;
-                    container.style.display = 'block';
-                    input.replaceWith(container);
+                    input.value = currentName; // Revert changes
+                    input.blur();
                 }
             });
 
-            container.style.display = 'none';
-            container.parentElement.insertBefore(input, container);
+            container.replaceWith(input);
             input.focus();
             input.select();
         };
@@ -608,8 +626,21 @@
         // --- HANDLERY IMPORTU/EKSPORTU, KOPIOWANIA, WSTAWEK ---
         const handleCopyPrompt = () => {
             const fullPrompt = document.getElementById('prompt-full-preview').value;
-            navigator.clipboard.writeText(fullPrompt).then(() => showToast('Skopiowano do schowka!', 'success')).catch(err => showToast('Błąd kopiowania!', 'error'));
+            // Use the 'copy' command for better compatibility in sandboxed environments
+            const textArea = document.createElement("textarea");
+            textArea.value = fullPrompt;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Skopiowano do schowka!', 'success');
+            } catch (err) {
+                showToast('Błąd kopiowania!', 'error');
+            }
+            document.body.removeChild(textArea);
         };
+
         const handleExport = () => {
             const dataStr = JSON.stringify(data, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
@@ -623,7 +654,9 @@
             URL.revokeObjectURL(url);
             showToast('Eksport rozpoczęty.', 'info');
         };
+
         const handleImport = () => { importFileInput.click(); };
+
         const handleFileImport = (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -634,7 +667,7 @@
                     if (importedData.projects && Array.isArray(importedData.projects)) {
                         if (confirm("Czy na pewno chcesz nadpisać obecne dane importowanymi? Ta operacja jest nieodwracalna.")) {
                             data = importedData;
-                            if (!data.snippets) data.snippets = [];
+                            if (!data.snippets) data.snippets = []; // Ensure snippets array exists
                             activeProjectId = data.projects.length > 0 ? data.projects[0].id : null;
                             const activeProject = activeProjectId ? data.projects.find(p => p.id === activeProjectId) : null;
                             activePromptId = activeProject?.prompts.length > 0 ? activeProject.prompts[0].id : null;
@@ -649,16 +682,53 @@
             };
             reader.readAsText(file);
         };
+
         const renderSnippetsModal = () => {
-            // ... (reszta kodu bez zmian)
+            snippetsListContainer.innerHTML = '';
+            if (!data.snippets || data.snippets.length === 0) {
+                snippetsListContainer.innerHTML = '<p class="text-slate-500">Brak zapisanych wstawek.</p>';
+                return;
+            }
+
+            data.snippets.forEach(snippet => {
+                const snippetEl = document.createElement('div');
+                snippetEl.className = 'p-4 border rounded-lg bg-slate-50 flex flex-col justify-between';
+
+                const contentDiv = document.createElement('div');
+                contentDiv.innerHTML = `
+                    <h5 class="font-bold text-indigo-700 break-words">${escapeHtml(snippet.name)}</h5>
+                    <p class="text-sm text-slate-600 mt-1 whitespace-pre-wrap break-words">${escapeHtml(snippet.content)}</p>
+                `;
+
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'mt-3 flex gap-2';
+
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Edytuj';
+                editBtn.className = 'px-3 py-1 bg-blue-500 text-white text-xs font-semibold rounded-md hover:bg-blue-600';
+                editBtn.onclick = () => handleEditSnippet(snippet.id);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Usuń';
+                deleteBtn.className = 'px-3 py-1 bg-red-500 text-white text-xs font-semibold rounded-md hover:bg-red-600';
+                deleteBtn.onclick = () => handleDeleteSnippet(snippet.id);
+
+                buttonsDiv.appendChild(editBtn);
+                buttonsDiv.appendChild(deleteBtn);
+
+                snippetEl.appendChild(contentDiv);
+                snippetEl.appendChild(buttonsDiv);
+
+                snippetsListContainer.appendChild(snippetEl);
+            });
         };
+
         const handleManageSnippets = () => { renderSnippetsModal(); snippetsModal.classList.remove('hidden'); };
-        const handleCloseModal = () => { 
-            snippetsModal.classList.add('hidden');
-            diffModal.classList.add('hidden');
-            modalBackdrop.classList.add('hidden');
-        };
+        
+        const handleCloseModal = () => { snippetsModal.classList.add('hidden'); };
+        
         const clearSnippetForm = () => { snippetIdInput.value = ''; snippetNameInput.value = ''; snippetContentInput.value = ''; };
+        
         const handleSaveSnippet = () => {
             const id = Number(snippetIdInput.value);
             const name = snippetNameInput.value.trim().replace(/\s+/g, '_');
@@ -675,11 +745,14 @@
             showToast("Wstawka zapisana!", "success");
             clearSnippetForm();
             renderSnippetsModal();
+            render(); // Re-render editor to show new snippet options
         };
+
         const handleEditSnippet = (id) => {
             const snippet = data.snippets.find(s => s.id === id);
             if (snippet) { snippetIdInput.value = snippet.id; snippetNameInput.value = snippet.name; snippetContentInput.value = snippet.content; }
         };
+
         const handleDeleteSnippet = (id) => {
             if (confirm("Czy na pewno chcesz usunąć tę wstawkę?")) {
                 data.snippets = data.snippets.filter(s => s.id !== id);
@@ -687,9 +760,12 @@
                 showToast("Wstawka usunięta.", "success");
                 clearSnippetForm();
                 renderSnippetsModal();
+                render(); // Re-render editor to remove snippet options
             }
         };
+
         const replaceSnippets = (text) => {
+            if (typeof text !== 'string') return '';
             return text.replace(/\{\{([^}]+)\}\}/g, (match, snippetName) => {
                 const snippet = data.snippets.find(s => s.name === snippetName.trim());
                 return snippet ? snippet.content : match;
@@ -703,6 +779,7 @@
             autoSaveTimer = setTimeout(() => { if (hasUnsavedChanges) { handleSaveVersion(); } }, AUTOSAVE_DELAY);
             updateFullPromptPreview();
         };
+
         const updateFullPromptPreview = () => {
             const previewTextarea = document.getElementById('prompt-full-preview');
             if (!previewTextarea) return;
@@ -713,18 +790,27 @@
             };
             for (const key in content) { content[key] = replaceSnippets(content[key]); }
             const temporaryText = document.getElementById('prompt-temporary').value.trim();
-            let fullPrompt = `### Rola\n${content.role}\n\n### Kontekst\n${content.context}\n\n### Instrukcja\n${content.instruction}\n\n### Sposób działania\n${content.mode}${content.guidelines ? `\n\n### Wytyczne dodatkowe\n${content.guidelines}` : ''}`.trim();
+            let fullPrompt = [
+                `### Rola\n${content.role}`,
+                `### Kontekst\n${content.context}`,
+                `### Instrukcja\n${content.instruction}`,
+                `### Sposób działania\n${content.mode}`
+            ].join('\n\n').trim();
+            if(content.guidelines) {
+                fullPrompt += `\n\n### Wytyczne dodatkowe\n${content.guidelines}`;
+            }
             if (temporaryText) { fullPrompt += `\n\n---\n\n${temporaryText}`; }
             previewTextarea.value = fullPrompt;
             autoResizeTextarea({ target: previewTextarea });
         };
+
         const autoResizeTextarea = (event) => {
             const textarea = event.target;
             textarea.style.height = 'auto';
             textarea.style.height = (textarea.scrollHeight) + 'px';
         };
+
         const showToast = (message, type = 'info') => {
-            const toastContainer = document.getElementById('toast-container');
             const toast = document.createElement('div');
             let bgColor;
             switch(type) {
@@ -737,6 +823,7 @@
             toastContainer.appendChild(toast);
             setTimeout(() => { toast.remove(); }, 3000);
         };
+
         const formatDate = (date) => {
             const d = date.getDate().toString().padStart(2, '0');
             const m = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -745,55 +832,11 @@
             const min = date.getMinutes().toString().padStart(2, '0');
             return `${d}.${m}.${y} - ${h}:${min}`;
         };
+
         function escapeHtml(str) {
             if (typeof str !== 'string') return '';
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
-        const handleCompareVersion = (versionId) => {
-            if (versionToCompareId === null) {
-                versionToCompareId = versionId;
-                showToast('Wybierz drugą wersję do porównania', 'info');
-                render();
-            } else {
-                const activeProject = data.projects.find(p => p.id === activeProjectId);
-                const activePrompt = activeProject?.prompts.find(p => p.id === activePromptId);
-                const version1 = activePrompt.versions.find(v => v.id === versionToCompareId);
-                const version2 = activePrompt.versions.find(v => v.id === versionId);
-
-                if (version1 && version2) {
-                    showDiffModal(version1, version2);
-                }
-                versionToCompareId = null;
-                render();
-            }
-        };
-        const showDiffModal = (v1, v2) => {
-            const content1 = Object.values(v1.content).join('\n');
-            const content2 = Object.values(v2.content).join('\n');
-            const diff = Diff.diffChars(content1, content2);
-            let html = '';
-            diff.forEach(part => {
-                const colorClass = part.added ? 'diff-added' : part.removed ? 'diff-removed' : '';
-                html += `<span class="${colorClass}">${escapeHtml(part.value)}</span>`;
-            });
-
-            diffModal.innerHTML = `
-                <div class="flex justify-between items-center p-4 border-b">
-                    <h3 class="text-xl font-bold">Porównanie Wersji</h3>
-                    <button id="diff-modal-close-btn" class="text-2xl font-bold text-slate-500 hover:text-slate-800">&times;</button>
-                </div>
-                <div class="p-6 overflow-y-auto">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><h4 class="font-bold mb-2">${v1.name}</h4><div class="p-2 border rounded whitespace-pre-wrap">${escapeHtml(content1)}</div></div>
-                        <div><h4 class="font-bold mb-2">${v2.name}</h4><div class="p-2 border rounded whitespace-pre-wrap">${escapeHtml(content2)}</div></div>
-                    </div>
-                    <h4 class="font-bold mt-6 mb-2">Różnice:</h4>
-                    <div class="p-2 border rounded whitespace-pre-wrap">${html}</div>
-                </div>`;
-            diffModal.classList.remove('hidden');
-            modalBackdrop.classList.remove('hidden');
-            document.getElementById('diff-modal-close-btn').onclick = handleCloseModal;
-        };
 
         // --- INICJALIZACJA ---
         addProjectBtn.addEventListener('click', handleAddProject);
@@ -822,63 +865,48 @@
         });
         
         let draggedTab = null;
-        tabsContainer.addEventListener('dragstart', (e) => {
-            if (!e.target.classList.contains('tab')) return;
-            draggedTab = e.target;
-            e.target.classList.add('dragging');
-        });
-        tabsContainer.addEventListener('dragend', (e) => {
-            if (!e.target.classList.contains('tab')) return;
-            e.target.classList.remove('dragging');
-            draggedTab = null;
-        });
-        tabsContainer.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            const afterElement = getDragAfterElement(tabsContainer, e.clientX);
-            const draggable = document.querySelector('.dragging');
-            if (draggable) {
-                if (afterElement == null) {
-                    tabsContainer.appendChild(draggable);
-                } else {
-                    tabsContainer.insertBefore(draggable, afterElement);
-                }
-            }
-        });
-        tabsContainer.addEventListener('drop', () => {
-            const newOrderIds = Array.from(tabsContainer.querySelectorAll('.tab')).map(tab => Number(tab.dataset.id));
-            const activeProject = data.projects.find(p => p.id === activeProjectId);
-            if(activeProject) {
-                activeProject.prompts.sort((a, b) => newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id));
-                saveData();
-            }
-        });
+        const setupDragAndDrop = (container, getItems, setItems) => {
+            container.addEventListener('dragstart', (e) => {
+                if (!e.target.classList.contains('tab')) return;
+                draggedTab = e.target;
+                setTimeout(() => e.target.classList.add('dragging'), 0);
+            });
 
-        projectTabsContainer.addEventListener('dragstart', (e) => {
-            if (!e.target.classList.contains('tab')) return;
-            draggedTab = e.target;
-            e.target.classList.add('dragging');
-        });
-        projectTabsContainer.addEventListener('dragend', (e) => {
-            if (!e.target.classList.contains('tab')) return;
-            e.target.classList.remove('dragging');
-            draggedTab = null;
-        });
-        projectTabsContainer.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            const afterElement = getDragAfterElement(projectTabsContainer, e.clientX);
-            const draggable = document.querySelector('.dragging');
-            if (draggable) {
-                if (afterElement == null) {
-                    projectTabsContainer.appendChild(draggable);
-                } else {
-                    projectTabsContainer.insertBefore(draggable, afterElement);
+            container.addEventListener('dragend', (e) => {
+                if (!e.target.classList.contains('tab')) return;
+                e.target.classList.remove('dragging');
+                draggedTab = null;
+            });
+
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(container, e.clientX);
+                const draggable = document.querySelector('.dragging');
+                if (draggable) {
+                    if (afterElement == null) {
+                        container.appendChild(draggable);
+                    } else {
+                        container.insertBefore(draggable, afterElement);
+                    }
                 }
-            }
-        });
-        projectTabsContainer.addEventListener('drop', () => {
-            const newOrderIds = Array.from(projectTabsContainer.querySelectorAll('.tab')).map(tab => Number(tab.dataset.id));
-            data.projects.sort((a, b) => newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id));
-            saveData();
+            });
+
+            container.addEventListener('drop', () => {
+                const newOrderIds = Array.from(container.querySelectorAll('.tab')).map(tab => Number(tab.dataset.id));
+                const items = getItems();
+                items.sort((a, b) => newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id));
+                setItems(items);
+                saveData();
+            });
+        }
+
+        setupDragAndDrop(projectTabsContainer, () => data.projects, (items) => data.projects = items);
+        setupDragAndDrop(tabsContainer, () => {
+            const activeProject = data.projects.find(p => p.id === activeProjectId);
+            return activeProject ? activeProject.prompts : [];
+        }, (items) => {
+            const activeProject = data.projects.find(p => p.id === activeProjectId);
+            if(activeProject) activeProject.prompts = items;
         });
 
         function getDragAfterElement(container, x) {
