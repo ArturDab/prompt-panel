@@ -5,15 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Menedżer Promptów</title>
     
-    <!-- Zasoby ładowane z sieci CDN - idealne dla GitHub Pages -->
+    <!-- Zasoby ładowane z sieci CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Quill Rich Text Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    
     <style>
         html {
-            font-size: 75%;
+            font-size: 85%;
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -57,6 +61,30 @@
         }
         .snippet-item:hover {
             background-color: #f1f5f9;
+        }
+        /* Quill Editor Styling */
+        .ql-container.ql-snow {
+            border-radius: 0 0 0.5rem 0.5rem;
+        }
+        .ql-toolbar.ql-snow {
+            border-radius: 0.5rem 0.5rem 0 0;
+            border-bottom: 0;
+        }
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .ql-editor {
+            flex-grow: 1;
+            resize: vertical;
+            overflow-y: auto;
+        }
+        .ql-editor p {
+            margin-bottom: 1rem;
+        }
+        .ql-editor li {
+            margin-bottom: 0.5rem;
         }
     </style>
 </head>
@@ -117,13 +145,13 @@
                     <!-- Main Prompt Content -->
                     <div class="flex-grow flex flex-col">
                         <div class="flex justify-between items-center mb-1">
-                            <label for="prompt-content" class="block text-sm font-medium text-slate-600">Treść promptu (zapisywana automatycznie)</label>
+                            <label for="prompt-content-editor" class="block text-sm font-medium text-slate-600">Treść promptu (zapisywana automatycznie)</label>
                             <div class="relative">
                                 <button id="insert-snippet-btn" class="text-sm text-indigo-600 hover:text-indigo-800 font-semibold">Wstaw snippet</button>
                                 <div id="snippet-dropdown" class="snippet-dropdown hidden"></div>
                             </div>
                         </div>
-                        <textarea id="prompt-content" class="w-full h-full flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none"></textarea>
+                        <div id="prompt-content-editor" class="h-full"></div>
                     </div>
 
                     <!-- Temporary Content -->
@@ -140,8 +168,8 @@
                     
                     <!-- Combined Output -->
                     <div class="flex-grow flex flex-col">
-                        <label for="combined-output" class="block text-sm font-medium text-slate-600 mb-1">Końcowy prompt (podgląd)</label>
-                        <textarea id="combined-output" readonly class="w-full h-full flex-grow p-3 border bg-slate-50 border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none custom-scrollbar"></textarea>
+                        <label for="combined-output-preview" class="block text-sm font-medium text-slate-600 mb-1">Końcowy prompt (podgląd)</label>
+                        <div id="combined-output-preview" class="w-full h-full flex-grow p-3 border bg-slate-50 border-slate-300 rounded-lg overflow-y-auto custom-scrollbar"></div>
                          <div class="flex justify-end mt-2">
                              <button id="copy-btn-2" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
@@ -174,8 +202,8 @@
                         <input type="text" id="snippet-name-input" class="mt-1 w-full p-2 border border-slate-300 rounded-lg">
                     </div>
                     <div class="flex-grow flex flex-col">
-                        <label for="snippet-content-input" class="block text-sm font-medium text-slate-600">Treść wstawki</label>
-                        <textarea id="snippet-content-input" rows="25" class="mt-1 w-full flex-grow p-2 border border-slate-300 rounded-lg resize-none"></textarea>
+                        <label for="snippet-content-editor" class="block text-sm font-medium text-slate-600">Treść wstawki</label>
+                        <div id="snippet-content-editor" class="mt-1 flex-grow h-full"></div>
                     </div>
                     <div class="flex justify-end gap-2">
                         <button id="cancel-snippet-edit-btn" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-semibold hidden">Anuluj</button>
@@ -208,7 +236,6 @@
 
 
     <script>
-    // Wersja zweryfikowana dla GitHub Pages
     document.addEventListener('DOMContentLoaded', () => {
         // --- STATE MANAGEMENT ---
         let state = {
@@ -226,9 +253,8 @@
         const addProjectBtn = document.getElementById('add-project-btn');
         const addPromptBtn = document.getElementById('add-prompt-btn');
         const addVersionBtn = document.getElementById('add-version-btn');
-        const promptContent = document.getElementById('prompt-content');
         const tempContent = document.getElementById('temp-content');
-        const combinedOutput = document.getElementById('combined-output');
+        const combinedOutputPreview = document.getElementById('combined-output-preview');
         const copyBtn1 = document.getElementById('copy-btn-1');
         const copyBtn2 = document.getElementById('copy-btn-2');
         const editorView = document.getElementById('editor-view');
@@ -244,7 +270,6 @@
         const snippetFormTitle = document.getElementById('snippet-form-title');
         const snippetIdInput = document.getElementById('snippet-id-input');
         const snippetNameInput = document.getElementById('snippet-name-input');
-        const snippetContentInput = document.getElementById('snippet-content-input');
         const saveSnippetBtn = document.getElementById('save-snippet-btn');
         const cancelSnippetEditBtn = document.getElementById('cancel-snippet-edit-btn');
         const snippetsListModal = document.getElementById('snippets-list-modal');
@@ -259,6 +284,25 @@
         const modalCancel = document.getElementById('modal-cancel');
 
         let confirmationCallback = null;
+        
+        // --- QUILL EDITOR INSTANCES ---
+        const quillToolbarOptions = [
+            [{ 'header': [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            ['clean']
+        ];
+
+        const promptEditor = new Quill('#prompt-content-editor', {
+            modules: { toolbar: quillToolbarOptions },
+            theme: 'snow'
+        });
+
+        const snippetEditor = new Quill('#snippet-content-editor', {
+            modules: { toolbar: quillToolbarOptions },
+            theme: 'snow'
+        });
+
 
         // --- DATA PERSISTENCE ---
         const saveData = () => {
@@ -302,7 +346,8 @@
             if (!text) return '';
             return text.replace(/\{\{([^}]+)\}\}/g, (match, snippetName) => {
                 const snippet = state.snippets.find(s => s.name === snippetName.trim());
-                return snippet ? snippet.content : match; // If snippet not found, return the placeholder
+                // Snippet content is HTML, so it will be rendered as such
+                return snippet ? snippet.content : match; 
             });
         };
 
@@ -316,10 +361,7 @@
                 const li = document.createElement('li');
                 li.className = 'p-2 border-b flex justify-between items-center';
                 li.innerHTML = `
-                    <div class="flex-grow">
-                        <strong class="font-semibold">${snippet.name}</strong>
-                        <p class="text-sm text-slate-600 truncate">${snippet.content}</p>
-                    </div>
+                    <strong class="font-semibold flex-grow truncate">${snippet.name}</strong>
                     <div class="flex gap-2 ml-2">
                         <button data-id="${snippet.id}" class="edit-snippet-btn text-blue-500 hover:text-blue-700">Edytuj</button>
                         <button data-id="${snippet.id}" class="delete-snippet-btn text-red-500 hover:text-red-700">Usuń</button>
@@ -333,16 +375,17 @@
             snippetFormTitle.textContent = 'Dodaj nową wstawkę';
             snippetIdInput.value = '';
             snippetNameInput.value = '';
-            snippetContentInput.value = '';
+            snippetEditor.root.innerHTML = '';
             cancelSnippetEditBtn.classList.add('hidden');
         };
         
         const handleSaveSnippet = () => {
             const id = snippetIdInput.value;
-            const name = snippetNameInput.value.trim().replace(/\s+/g, '_'); // Replace spaces with underscores
-            const content = snippetContentInput.value.trim();
+            const name = snippetNameInput.value.trim().replace(/\s+/g, '_');
+            const content = snippetEditor.root.innerHTML;
+            const hasContent = snippetEditor.getText().trim().length > 0;
 
-            if (!name || !content) {
+            if (!name || !hasContent) {
                 alert('Nazwa i treść wstawki nie mogą być puste.');
                 return;
             }
@@ -353,20 +396,20 @@
                 return;
             }
 
-            if (id) { // Editing existing snippet
+            if (id) { // Editing
                 const snippet = state.snippets.find(s => s.id === id);
                 if (snippet) {
                     snippet.name = name;
                     snippet.content = content;
                 }
-            } else { // Adding new snippet
+            } else { // Adding
                 state.snippets.unshift({ id: generateId(), name, content });
             }
 
             saveData();
             renderSnippetsInModal();
             resetSnippetForm();
-            updateCombinedOutput(); // Update preview in case a snippet was edited
+            updateCombinedOutput();
         };
 
         const handleEditSnippet = (id) => {
@@ -375,7 +418,7 @@
                 snippetFormTitle.textContent = 'Edytuj wstawkę';
                 snippetIdInput.value = snippet.id;
                 snippetNameInput.value = snippet.name;
-                snippetContentInput.value = snippet.content;
+                snippetEditor.root.innerHTML = snippet.content;
                 cancelSnippetEditBtn.classList.remove('hidden');
             }
         };
@@ -385,7 +428,7 @@
                 state.snippets = state.snippets.filter(s => s.id !== id);
                 saveData();
                 renderSnippetsInModal();
-                updateCombinedOutput(); // Update preview
+                updateCombinedOutput();
             });
         };
 
@@ -409,14 +452,8 @@
 
         const insertSnippetPlaceholder = (name) => {
             const placeholder = `{{${name}}}`;
-            const start = promptContent.selectionStart;
-            const end = promptContent.selectionEnd;
-            const text = promptContent.value;
-            promptContent.value = text.substring(0, start) + placeholder + text.substring(end);
-            promptContent.focus();
-            promptContent.selectionStart = promptContent.selectionEnd = start + placeholder.length;
-            // Manually trigger input event to update state
-            promptContent.dispatchEvent(new Event('input', { bubbles: true }));
+            const range = promptEditor.getSelection(true);
+            promptEditor.insertText(range.index, placeholder);
         };
 
 
@@ -466,7 +503,7 @@
                     if (newName && newName !== name) {
                         onNameUpdate(id, newName);
                     } else {
-                        input.replaceWith(nameSpan); // Restore original if no change
+                        input.replaceWith(nameSpan);
                     }
                 };
                 
@@ -539,17 +576,19 @@
 
         const renderEditor = () => {
             const version = getSelectedVersion();
+            promptEditor.disable();
             if (version) {
+                promptEditor.enable();
                 editorView.classList.remove('hidden');
                 placeholderView.classList.add('hidden');
-                promptContent.value = version.content || '';
+                promptEditor.root.innerHTML = version.content || '';
                 updateCombinedOutput();
             } else {
                 editorView.classList.add('hidden');
                 placeholderView.classList.remove('hidden');
-                promptContent.value = '';
+                promptEditor.root.innerHTML = '';
                 tempContent.value = '';
-                combinedOutput.value = '';
+                combinedOutputPreview.innerHTML = '';
             }
         };
 
@@ -662,7 +701,6 @@
                 if (state.selectedVersionId === versionId) {
                     state.selectedVersionId = null;
                     if (prompt.versions.length > 0) {
-                        // Select previous or first version
                         const newIndex = Math.max(0, versionIndex - 1);
                         state.selectedVersionId = prompt.versions[newIndex].id;
                     }
@@ -700,28 +738,41 @@
             }
         };
 
-        promptContent.oninput = () => {
-            const version = getSelectedVersion();
-            if (version) {
-                version.content = promptContent.value;
-                updateCombinedOutput();
-                saveData();
+        promptEditor.on('text-change', (delta, oldDelta, source) => {
+            if (source === 'user') {
+                const version = getSelectedVersion();
+                if (version) {
+                    version.content = promptEditor.root.innerHTML;
+                    updateCombinedOutput();
+                    saveData();
+                }
             }
-        };
+        });
 
         tempContent.oninput = updateCombinedOutput;
 
         function updateCombinedOutput() {
-            const mainContent = promptContent.value || '';
+            const mainContent = promptEditor.root.innerHTML || '';
             const processedMain = replaceSnippets(mainContent);
             const temp = tempContent.value || '';
-            combinedOutput.value = `${processedMain}\n\n${temp}`.trim();
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = processedMain;
+            
+            combinedOutputPreview.innerHTML = tempDiv.innerHTML;
+            
+            const tempText = temp ? `\n\n${temp}` : '';
+            const finalPlainText = combinedOutputPreview.innerText + tempText;
+            
+            // Set a data attribute to store plain text for copying
+            combinedOutputPreview.dataset.plainText = finalPlainText.trim();
         }
 
         // Copy
         const copyToClipboard = (btn) => {
-            if (!combinedOutput.value) return;
-            navigator.clipboard.writeText(combinedOutput.value).then(() => {
+            const textToCopy = combinedOutputPreview.dataset.plainText;
+            if (!textToCopy) return;
+            navigator.clipboard.writeText(textToCopy).then(() => {
                 const originalText = btn.innerHTML;
                 btn.innerHTML = 'Skopiowano!';
                 btn.classList.add('bg-green-500');
@@ -769,7 +820,7 @@
                             'Spowoduje to nadpisanie wszystkich obecnych projektów i promptów. Kontynuować?',
                             () => {
                                 state = importedState;
-                                if (!state.snippets) state.snippets = []; // Ensure snippets array exists
+                                if (!state.snippets) state.snippets = [];
                                 state.selectedProjectId = null;
                                 state.selectedPromptId = null;
                                 state.selectedVersionId = null;
