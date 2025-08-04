@@ -357,7 +357,7 @@
                     snippet.content = content;
                 }
             } else { // Adding new snippet
-                state.snippets.push({ id: generateId(), name, content });
+                state.snippets.unshift({ id: generateId(), name, content });
             }
 
             saveData();
@@ -593,7 +593,7 @@
                 name: `Nowy Projekt ${state.projects.length + 1}`,
                 prompts: []
             };
-            state.projects.push(newProject);
+            state.projects.unshift(newProject);
             selectProject(newProject.id);
             saveData();
         };
@@ -606,7 +606,7 @@
                     name: `Nowy Prompt ${project.prompts.length + 1}`,
                     versions: []
                 };
-                project.prompts.push(newPrompt);
+                project.prompts.unshift(newPrompt);
                 selectPrompt(newPrompt.id);
                 saveData();
             }
@@ -620,7 +620,7 @@
                     name: `Wersja ${prompt.versions.length + 1}`,
                     content: ''
                 };
-                prompt.versions.push(newVersion);
+                prompt.versions.unshift(newVersion);
                 selectVersion(newVersion.id);
                 saveData();
             }
