@@ -37,6 +37,24 @@
         .drag-over {
             border-top: 2px solid #4f46e5;
         }
+        /* Snippet dropdown */
+        .snippet-dropdown {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            z-index: 20;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .snippet-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+        .snippet-item:hover {
+            background-color: #f1f5f9;
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800">
@@ -46,6 +64,7 @@
         <header class="bg-white shadow-md p-4 flex justify-between items-center z-10">
             <h1 class="text-2xl font-bold text-slate-700">Menedżer Promptów</h1>
             <div class="flex items-center space-x-2">
+                <button id="manage-snippets-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Zarządzaj wstawkami</button>
                 <button id="import-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
                     Importuj (JSON)
                 </button>
@@ -94,7 +113,13 @@
                 <div id="editor-view" class="flex-grow flex flex-col gap-4 hidden">
                     <!-- Main Prompt Content -->
                     <div class="flex-grow flex flex-col">
-                        <label for="prompt-content" class="block text-sm font-medium text-slate-600 mb-1">Treść promptu (zapisywana automatycznie)</label>
+                        <div class="flex justify-between items-center mb-1">
+                            <label for="prompt-content" class="block text-sm font-medium text-slate-600">Treść promptu (zapisywana automatycznie)</label>
+                            <div class="relative">
+                                <button id="insert-snippet-btn" class="text-sm text-indigo-600 hover:text-indigo-800 font-semibold">Wstaw snippet</button>
+                                <div id="snippet-dropdown" class="snippet-dropdown hidden"></div>
+                            </div>
+                        </div>
                         <textarea id="prompt-content" class="w-full h-full flex-grow p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none"></textarea>
                     </div>
 
@@ -132,6 +157,40 @@
         </main>
     </div>
 
+    <!-- Snippets Modal -->
+    <div id="snippet-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-5xl flex flex-col gap-4 max-h-[90vh]">
+            <h2 class="text-xl font-bold">Zarządzaj wstawkami (snippetami)</h2>
+            <div class="flex flex-col md:flex-row gap-4 flex-grow min-h-0">
+                <!-- Form -->
+                <div class="w-full md:w-1/2 flex flex-col gap-4">
+                    <h3 id="snippet-form-title" class="text-lg font-semibold">Dodaj nową wstawkę</h3>
+                    <input type="hidden" id="snippet-id-input">
+                    <div>
+                        <label for="snippet-name-input" class="block text-sm font-medium text-slate-600">Nazwa (bez spacji, np. 'formalny_ton')</label>
+                        <input type="text" id="snippet-name-input" class="mt-1 w-full p-2 border border-slate-300 rounded-lg">
+                    </div>
+                    <div class="flex-grow flex flex-col">
+                        <label for="snippet-content-input" class="block text-sm font-medium text-slate-600">Treść wstawki</label>
+                        <textarea id="snippet-content-input" rows="25" class="mt-1 w-full flex-grow p-2 border border-slate-300 rounded-lg resize-none"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button id="cancel-snippet-edit-btn" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-semibold hidden">Anuluj</button>
+                        <button id="save-snippet-btn" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-semibold">Zapisz</button>
+                    </div>
+                </div>
+                <!-- List -->
+                <div class="w-full md:w-1/2 flex flex-col">
+                    <h3 class="text-lg font-semibold mb-2">Istniejące wstawki</h3>
+                    <ul id="snippets-list-modal" class="flex-grow overflow-y-auto custom-scrollbar border rounded-lg p-2 space-y-2">
+                        <!-- Snippets will be rendered here -->
+                    </ul>
+                </div>
+            </div>
+             <button id="close-snippet-modal-btn" class="mt-4 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-semibold self-center">Zamknij</button>
+        </div>
+    </div>
+
     <!-- Custom Modal for confirmation -->
     <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
@@ -146,10 +205,12 @@
 
 
     <script>
+    // Wersja zweryfikowana dla GitHub Pages
     document.addEventListener('DOMContentLoaded', () => {
         // --- STATE MANAGEMENT ---
         let state = {
             projects: [],
+            snippets: [],
             selectedProjectId: null,
             selectedPromptId: null,
             selectedVersionId: null,
@@ -172,6 +233,22 @@
         const importBtn = document.getElementById('import-btn');
         const exportBtn = document.getElementById('export-btn');
         const importFile = document.getElementById('import-file');
+        
+        // Snippet Elements
+        const manageSnippetsBtn = document.getElementById('manage-snippets-btn');
+        const snippetModal = document.getElementById('snippet-modal');
+        const closeSnippetModalBtn = document.getElementById('close-snippet-modal-btn');
+        const snippetFormTitle = document.getElementById('snippet-form-title');
+        const snippetIdInput = document.getElementById('snippet-id-input');
+        const snippetNameInput = document.getElementById('snippet-name-input');
+        const snippetContentInput = document.getElementById('snippet-content-input');
+        const saveSnippetBtn = document.getElementById('save-snippet-btn');
+        const cancelSnippetEditBtn = document.getElementById('cancel-snippet-edit-btn');
+        const snippetsListModal = document.getElementById('snippets-list-modal');
+        const insertSnippetBtn = document.getElementById('insert-snippet-btn');
+        const snippetDropdown = document.getElementById('snippet-dropdown');
+
+        // Confirmation Modal Elements
         const confirmationModal = document.getElementById('confirmation-modal');
         const modalTitle = document.getElementById('modal-title');
         const modalText = document.getElementById('modal-text');
@@ -195,14 +272,13 @@
             if (data) {
                 try {
                     const parsedData = JSON.parse(data);
-                    // Basic validation of the loaded data
                     if (parsedData && Array.isArray(parsedData.projects)) {
                         state = parsedData;
+                        if (!state.snippets) state.snippets = []; // Backward compatibility
                     }
                 } catch (e) {
                     console.error("Error parsing data from localStorage:", e);
-                    // Initialize with default state if parsing fails
-                    state = { projects: [], selectedProjectId: null, selectedPromptId: null, selectedVersionId: null };
+                    state = { projects: [], snippets: [], selectedProjectId: null, selectedPromptId: null, selectedVersionId: null };
                 }
             }
         };
@@ -217,6 +293,128 @@
         const getSelectedProject = () => findProject(state.selectedProjectId);
         const getSelectedPrompt = () => findPrompt(state.selectedProjectId, state.selectedPromptId);
         const getSelectedVersion = () => findVersion(state.selectedProjectId, state.selectedPromptId, state.selectedVersionId);
+
+        // --- SNIPPET FUNCTIONS ---
+        const replaceSnippets = (text) => {
+            if (!text) return '';
+            return text.replace(/\{\{([^}]+)\}\}/g, (match, snippetName) => {
+                const snippet = state.snippets.find(s => s.name === snippetName.trim());
+                return snippet ? snippet.content : match; // If snippet not found, return the placeholder
+            });
+        };
+
+        const renderSnippetsInModal = () => {
+            snippetsListModal.innerHTML = '';
+            if (state.snippets.length === 0) {
+                snippetsListModal.innerHTML = '<p class="text-slate-500 text-center">Brak zapisanych wstawek.</p>';
+                return;
+            }
+            state.snippets.forEach(snippet => {
+                const li = document.createElement('li');
+                li.className = 'p-2 border-b flex justify-between items-center';
+                li.innerHTML = `
+                    <div class="flex-grow">
+                        <strong class="font-semibold">${snippet.name}</strong>
+                        <p class="text-sm text-slate-600 truncate">${snippet.content}</p>
+                    </div>
+                    <div class="flex gap-2 ml-2">
+                        <button data-id="${snippet.id}" class="edit-snippet-btn text-blue-500 hover:text-blue-700">Edytuj</button>
+                        <button data-id="${snippet.id}" class="delete-snippet-btn text-red-500 hover:text-red-700">Usuń</button>
+                    </div>
+                `;
+                snippetsListModal.appendChild(li);
+            });
+        };
+
+        const resetSnippetForm = () => {
+            snippetFormTitle.textContent = 'Dodaj nową wstawkę';
+            snippetIdInput.value = '';
+            snippetNameInput.value = '';
+            snippetContentInput.value = '';
+            cancelSnippetEditBtn.classList.add('hidden');
+        };
+        
+        const handleSaveSnippet = () => {
+            const id = snippetIdInput.value;
+            const name = snippetNameInput.value.trim().replace(/\s+/g, '_'); // Replace spaces with underscores
+            const content = snippetContentInput.value.trim();
+
+            if (!name || !content) {
+                alert('Nazwa i treść wstawki nie mogą być puste.');
+                return;
+            }
+
+            const isNameTaken = state.snippets.some(s => s.name === name && s.id !== id);
+            if (isNameTaken) {
+                alert('Wstawka o tej nazwie już istnieje.');
+                return;
+            }
+
+            if (id) { // Editing existing snippet
+                const snippet = state.snippets.find(s => s.id === id);
+                if (snippet) {
+                    snippet.name = name;
+                    snippet.content = content;
+                }
+            } else { // Adding new snippet
+                state.snippets.push({ id: generateId(), name, content });
+            }
+
+            saveData();
+            renderSnippetsInModal();
+            resetSnippetForm();
+            updateCombinedOutput(); // Update preview in case a snippet was edited
+        };
+
+        const handleEditSnippet = (id) => {
+            const snippet = state.snippets.find(s => s.id === id);
+            if (snippet) {
+                snippetFormTitle.textContent = 'Edytuj wstawkę';
+                snippetIdInput.value = snippet.id;
+                snippetNameInput.value = snippet.name;
+                snippetContentInput.value = snippet.content;
+                cancelSnippetEditBtn.classList.remove('hidden');
+            }
+        };
+
+        const handleDeleteSnippet = (id) => {
+            showConfirmation('Usunąć wstawkę?', 'Tej operacji nie można cofnąć.', () => {
+                state.snippets = state.snippets.filter(s => s.id !== id);
+                saveData();
+                renderSnippetsInModal();
+                updateCombinedOutput(); // Update preview
+            });
+        };
+
+        const renderSnippetDropdown = () => {
+            snippetDropdown.innerHTML = '';
+            if (state.snippets.length === 0) {
+                snippetDropdown.innerHTML = '<div class="p-2 text-slate-500">Brak wstawek</div>';
+            } else {
+                state.snippets.forEach(snippet => {
+                    const item = document.createElement('div');
+                    item.className = 'snippet-item';
+                    item.textContent = snippet.name;
+                    item.onclick = () => {
+                        insertSnippetPlaceholder(snippet.name);
+                        snippetDropdown.classList.add('hidden');
+                    };
+                    snippetDropdown.appendChild(item);
+                });
+            }
+        };
+
+        const insertSnippetPlaceholder = (name) => {
+            const placeholder = `{{${name}}}`;
+            const start = promptContent.selectionStart;
+            const end = promptContent.selectionEnd;
+            const text = promptContent.value;
+            promptContent.value = text.substring(0, start) + placeholder + text.substring(end);
+            promptContent.focus();
+            promptContent.selectionStart = promptContent.selectionEnd = start + placeholder.length;
+            // Manually trigger input event to update state
+            promptContent.dispatchEvent(new Event('input', { bubbles: true }));
+        };
 
 
         // --- RENDER FUNCTIONS ---
@@ -511,15 +709,15 @@
         tempContent.oninput = updateCombinedOutput;
 
         function updateCombinedOutput() {
-            const main = promptContent.value || '';
+            const mainContent = promptContent.value || '';
+            const processedMain = replaceSnippets(mainContent);
             const temp = tempContent.value || '';
-            combinedOutput.value = `${main}\n\n${temp}`.trim();
+            combinedOutput.value = `${processedMain}\n\n${temp}`.trim();
         }
 
         // Copy
         const copyToClipboard = (btn) => {
             if (!combinedOutput.value) return;
-            // The Clipboard API requires a secure context (HTTPS), which GitHub Pages provides.
             navigator.clipboard.writeText(combinedOutput.value).then(() => {
                 const originalText = btn.innerHTML;
                 btn.innerHTML = 'Skopiowano!';
@@ -562,14 +760,13 @@
             reader.onload = (event) => {
                 try {
                     const importedState = JSON.parse(event.target.result);
-                    // Basic validation
                     if (importedState && Array.isArray(importedState.projects)) {
                         showConfirmation(
                             'Importować dane?', 
                             'Spowoduje to nadpisanie wszystkich obecnych projektów i promptów. Kontynuować?',
                             () => {
                                 state = importedState;
-                                // Reset selections
+                                if (!state.snippets) state.snippets = []; // Ensure snippets array exists
                                 state.selectedProjectId = null;
                                 state.selectedPromptId = null;
                                 state.selectedVersionId = null;
@@ -585,7 +782,6 @@
                     console.error('Error importing file:', err);
                     alert('Błąd podczas importu pliku. Upewnij się, że plik jest poprawnym plikiem JSON z tego menedżera.');
                 } finally {
-                    // Reset file input to allow re-importing the same file
                     importFile.value = '';
                 }
             };
@@ -690,6 +886,36 @@
         versionsList.addEventListener('dragend', handleDragEnd);
         versionsList.addEventListener('dragover', handleDragOver);
         versionsList.addEventListener('drop', handleDrop);
+
+        // Snippet Event Listeners
+        manageSnippetsBtn.onclick = () => {
+            renderSnippetsInModal();
+            snippetModal.classList.remove('hidden');
+        };
+        closeSnippetModalBtn.onclick = () => snippetModal.classList.add('hidden');
+        saveSnippetBtn.onclick = handleSaveSnippet;
+        cancelSnippetEditBtn.onclick = resetSnippetForm;
+
+        snippetsListModal.addEventListener('click', (e) => {
+            if (e.target.classList.contains('edit-snippet-btn')) {
+                handleEditSnippet(e.target.dataset.id);
+            }
+            if (e.target.classList.contains('delete-snippet-btn')) {
+                handleDeleteSnippet(e.target.dataset.id);
+            }
+        });
+
+        insertSnippetBtn.onclick = () => {
+            renderSnippetDropdown();
+            snippetDropdown.classList.toggle('hidden');
+        };
+
+        // Hide dropdown if clicked outside
+        document.addEventListener('click', (e) => {
+            if (!insertSnippetBtn.contains(e.target) && !snippetDropdown.contains(e.target)) {
+                snippetDropdown.classList.add('hidden');
+            }
+        });
 
 
         // --- INITIALIZATION ---
