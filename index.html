@@ -35,8 +35,20 @@
             border: 2px dashed #4f46e5;
         }
         .project-tab {
-            font-size: 0.95rem; /* 15px */
+            font-size: 1rem; /* 16px */
             font-weight: 600;
+            padding-bottom: 0.75rem; /* 12px */
+        }
+        .prompt-tab {
+            font-size: 0.875rem; /* 14px */
+            font-weight: 500;
+        }
+        .note-icon, .edit-icon {
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .edit-icon:hover svg {
+            color: #4f46e5; /* indigo-600 */
         }
     </style>
 </head>
@@ -80,22 +92,20 @@
         </section>
 
         <div class="mb-6 bg-white p-6 rounded-lg shadow-lg">
-             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 class="text-xl font-bold text-slate-800">Projekty</h2>
-                <button id="add-project-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 whitespace-nowrap">
+             <div class="flex justify-between items-center">
+                <div id="project-tabs-container" class="flex border-b-2 border-slate-200 overflow-x-auto flex-grow"></div>
+                <button id="add-project-btn" class="ml-4 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 whitespace-nowrap">
                     + Nowy projekt
                 </button>
             </div>
-            <div id="project-tabs-container" class="flex border-b border-slate-300 mt-4 overflow-x-auto"></div>
         
-            <div id="prompt-section" class="mt-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h3 class="text-lg font-bold text-slate-700">Prompty w projekcie</h3>
-                    <button id="add-prompt-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 whitespace-nowrap">
+            <div id="prompt-section" class="mt-4">
+                 <div class="flex justify-between items-center">
+                    <div id="tabs-container" class="flex border-b border-slate-300 overflow-x-auto flex-grow"></div>
+                    <button id="add-prompt-btn" class="ml-4 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 whitespace-nowrap">
                         + Nowy prompt
                     </button>
                 </div>
-                <div id="tabs-container" class="flex border-b border-slate-300 mt-4 overflow-x-auto"></div>
             </div>
 
             <main id="main-content" class="mt-6 min-h-[50vh] flex flex-col md:flex-row gap-6">
@@ -123,11 +133,7 @@
                 <h3 class="text-xl font-bold">Zarządzaj wstawkami</h3>
                 <button id="modal-close-btn" class="text-2xl font-bold text-slate-500 hover:text-slate-800">&times;</button>
             </div>
-            <div class="flex-grow p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="flex flex-col gap-4">
-                    <h4 class="text-lg font-semibold mb-2">Lista wstawek</h4>
-                    <div id="snippets-list-container" class="space-y-4"></div>
-                </div>
+            <div class="flex-grow p-6 overflow-y-auto flex flex-col gap-6">
                 <div>
                     <h4 class="text-lg font-semibold mb-2">Dodaj / Edytuj Wstawkę</h4>
                     <input type="hidden" id="snippet-id-input">
@@ -137,10 +143,14 @@
                     </div>
                     <div class="mb-4">
                         <label for="snippet-content-input" class="block text-sm font-medium text-slate-700 mb-1">Treść</label>
-                        <textarea id="snippet-content-input" rows="8" class="w-full p-2 border border-slate-300 rounded-md shadow-sm"></textarea>
+                        <textarea id="snippet-content-input" rows="6" class="w-full p-2 border border-slate-300 rounded-md shadow-sm"></textarea>
                     </div>
                     <button id="save-snippet-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Zapisz Wstawkę</button>
                     <button id="clear-snippet-form-btn" class="px-4 py-2 bg-slate-500 text-white font-semibold rounded-lg shadow-md hover:bg-slate-600">Wyczyść</button>
+                </div>
+                <div class="border-t border-slate-200 pt-6">
+                    <h4 class="text-lg font-semibold mb-4">Lista wstawek</h4>
+                    <div id="snippets-list-container"></div>
                 </div>
             </div>
         </div>
@@ -187,9 +197,10 @@
         let activeVersionId = null;
         let hasUnsavedChanges = false;
         let autoSaveTimer = null;
+        let isEditingName = false;
         const AUTOSAVE_DELAY = 2 * 60 * 1000; // 2 minuty
         const initialExampleText = {
-            role: "", context: "", instruction: "", mode: "", guidelines: ""
+            role: "", context: "", instruction: "", mode: "", guidelines: "", note: ""
         };
 
         // --- FUNKCJE ZAPISU DANYCH (localStorage) ---
@@ -208,18 +219,24 @@
                 const storedData = localStorage.getItem('promptManagerData_v6');
                 if (storedData) {
                     data = JSON.parse(storedData);
-                    // Prosta migracja/walidacja
                     if (!data.projects) data.projects = [];
                     if (!data.snippets) data.snippets = [];
+                    data.projects.forEach(p => {
+                        p.prompts.forEach(pr => {
+                            pr.versions.forEach(v => {
+                                if (v.note === undefined) v.note = '';
+                            })
+                        })
+                    })
+
                 } else {
-                    // Inicjalizacja z przykładowymi danymi
                     const initialProjectId = Date.now();
                     data = {
                         projects: [{
                             id: initialProjectId, name: "Mój Pierwszy Projekt",
                             prompts: [{
                                 id: initialProjectId + 1, name: "Przykładowy Prompt",
-                                versions: [{ id: initialProjectId + 2, name: `1 - ${formatDate(new Date())}`, content: { ...initialExampleText, role: "To jest przykładowy prompt." }, createdAt: new Date().toISOString() }]
+                                versions: [{ id: initialProjectId + 2, name: `1 - ${formatDate(new Date())}`, content: { ...initialExampleText, role: "To jest przykładowy prompt." }, note: "To jest pierwsza wersja.", createdAt: new Date().toISOString() }]
                             }]
                         }],
                         snippets: [{ id: initialProjectId + 3, name: "formalny_ton", content: "Odpowiadaj w sposób formalny i profesjonalny." }]
@@ -251,21 +268,32 @@
         const renderProjects = () => {
             projectTabsContainer.innerHTML = '';
             if (data.projects.length === 0) {
-                projectTabsContainer.innerHTML = '<p class="p-4 text-slate-500">Brak projektów. Dodaj nowy, aby zacząć.</p>';
+                projectTabsContainer.innerHTML = '<p class="p-4 text-slate-500">Brak projektów.</p>';
                 return;
             }
             data.projects.forEach(project => {
                 const isActive = project.id === activeProjectId;
-                const tab = document.createElement('button');
-                tab.className = `tab project-tab px-4 py-3 text-sm border-b-2 transition-colors duration-200 ${isActive ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`;
-                tab.textContent = project.name;
+                const tab = document.createElement('div');
+                tab.className = `tab project-tab px-4 pt-2 border-b-4 cursor-pointer flex items-center gap-2 ${isActive ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`;
                 tab.dataset.id = project.id;
                 tab.draggable = true;
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = project.name;
+                tab.appendChild(nameSpan);
+
+                const editBtn = document.createElement('span');
+                editBtn.className = 'edit-icon text-slate-400';
+                editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>`;
+                editBtn.onclick = (e) => { e.stopPropagation(); handleEditName(nameSpan, project.id, 'project'); };
+                tab.appendChild(editBtn);
+
                 const deleteBtn = document.createElement('span');
-                deleteBtn.textContent = ' ×';
-                deleteBtn.className = 'ml-2 font-bold hover:text-red-500';
+                deleteBtn.textContent = '×';
+                deleteBtn.className = 'ml-1 font-bold hover:text-red-500';
                 deleteBtn.onclick = (e) => { e.stopPropagation(); handleDeleteProject(project.id); };
                 tab.appendChild(deleteBtn);
+
                 tab.onclick = () => handleProjectTabClick(project.id);
                 projectTabsContainer.appendChild(tab);
             });
@@ -275,21 +303,32 @@
             tabsContainer.innerHTML = '';
             const activeProject = data.projects.find(p => p.id === activeProjectId);
             if (!activeProject || activeProject.prompts.length === 0) {
-                tabsContainer.innerHTML = '<p class="p-4 text-slate-500">Brak promptów w tym projekcie. Dodaj nowy.</p>';
+                tabsContainer.innerHTML = '<p class="p-4 text-slate-500">Brak promptów.</p>';
                 return;
             }
             activeProject.prompts.forEach(prompt => {
                 const isActive = prompt.id === activePromptId;
-                const tab = document.createElement('button');
-                tab.className = `tab px-4 py-3 text-sm font-semibold border-b-2 transition-colors duration-200 ${isActive ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`;
-                tab.textContent = prompt.name;
+                const tab = document.createElement('div');
+                tab.className = `tab prompt-tab px-3 py-2 border-b-2 cursor-pointer flex items-center gap-2 ${isActive ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`;
                 tab.dataset.id = prompt.id;
                 tab.draggable = true;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = prompt.name;
+                tab.appendChild(nameSpan);
+
+                const editBtn = document.createElement('span');
+                editBtn.className = 'edit-icon text-slate-400';
+                editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>`;
+                editBtn.onclick = (e) => { e.stopPropagation(); handleEditName(nameSpan, prompt.id, 'prompt'); };
+                tab.appendChild(editBtn);
+
                 const deleteBtn = document.createElement('span');
-                deleteBtn.textContent = ' ×';
-                deleteBtn.className = 'ml-2 font-bold hover:text-red-500';
+                deleteBtn.textContent = '×';
+                deleteBtn.className = 'ml-1 font-bold hover:text-red-500';
                 deleteBtn.onclick = (e) => { e.stopPropagation(); handleDeletePrompt(prompt.id); };
                 tab.appendChild(deleteBtn);
+
                 tab.onclick = () => handleTabClick(prompt.id);
                 tabsContainer.appendChild(tab);
             });
@@ -314,7 +353,7 @@
                 return;
             }
             mainContent.classList.remove('items-center', 'justify-center');
-            mainContent.innerHTML = ''; // Clear previous content
+            mainContent.innerHTML = '';
             mainContent.appendChild(versionsSidebar);
             mainContent.appendChild(editorSection);
             renderVersions(activePrompt);
@@ -334,18 +373,29 @@
                 versionEl.className = `version-item flex justify-between items-center p-3 rounded-lg transition-colors duration-200 ${isActive ? 'bg-indigo-100 text-indigo-800' : 'hover:bg-slate-100'}`;
                 
                 const nameContainer = document.createElement('div');
-                nameContainer.className = 'flex-grow cursor-pointer';
-                nameContainer.textContent = version.name;
-                nameContainer.onclick = () => handleVersionClick(version.id);
-                nameContainer.ondblclick = (e) => handleEditVersionName(e, version.id);
+                nameContainer.className = 'flex-grow cursor-pointer flex items-center gap-2';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = version.name;
+                nameContainer.appendChild(nameSpan);
+
+                if (version.note) {
+                    const noteIcon = document.createElement('span');
+                    noteIcon.className = 'text-slate-400 note-icon';
+                    noteIcon.title = version.note;
+                    noteIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.064.293.006.399.287.47l.45.082.082-.38-2.29-.287a.5.5 0 0 1-.499-.405l-.738-3.468A.5.5 0 0 1 5.42 6.5l2.29.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/></svg>`;
+                    nameContainer.appendChild(noteIcon);
+                }
+
                 versionEl.appendChild(nameContainer);
 
                 const deleteBtn = document.createElement('button');
-                deleteBtn.innerHTML = '&#x1F5D1;'; // ikona kosza
+                deleteBtn.innerHTML = '&#x1F5D1;';
                 deleteBtn.className = 'text-slate-400 hover:text-red-600 font-bold px-2';
-                deleteBtn.onclick = (e) => confirmDeleteVersion(e.currentTarget, version.id);
+                deleteBtn.onclick = (e) => { e.stopPropagation(); confirmDeleteVersion(e.currentTarget, version.id); };
                 versionEl.appendChild(deleteBtn);
 
+                versionEl.onclick = () => handleVersionClick(version.id);
                 versionsList.appendChild(versionEl);
             });
         };
@@ -382,8 +432,8 @@
             editorSection.innerHTML = `
                 <div class="flex-grow flex flex-col h-full">
                     <div class="mb-4">
-                        <label for="version-name-display" class="block text-sm font-medium text-slate-700 mb-1">Wyświetlana wersja</label>
-                        <input type="text" id="version-name-display" value="${escapeHtml(activeVersion.name)}" class="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-md" readonly>
+                        <label for="version-name-input" class="block text-sm font-medium text-slate-700 mb-1">Nazwa wersji</label>
+                        <input type="text" id="version-name-input" value="${escapeHtml(activeVersion.name)}" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm">
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         ${createField('role', 'Rola', content.role || '')}
@@ -392,10 +442,21 @@
                         ${createField('mode', 'Sposób działania', content.mode || '')}
                     </div>
                     <div class="mt-4">${createField('guidelines', 'Wytyczne dodatkowe', content.guidelines || '')}</div>
-                    <div class="flex items-center gap-2 flex-wrap mt-4">
+                    <div class="mt-4">
+                        <label for="version-note-input" class="block text-sm font-medium text-slate-700 mb-1">Notatka do wersji (opcjonalnie)</label>
+                        <textarea id="version-note-input" rows="2" class="w-full p-2 border border-slate-300 rounded-md shadow-sm resize-none" placeholder="Opisz zmiany w tej wersji...">${escapeHtml(activeVersion.note || '')}</textarea>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap mt-6">
                         <button id="save-version-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Zapisz jako nową wersję</button>
+                        <button id="update-version-btn" class="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600">Zaktualizuj bieżącą wersję</button>
                     </div>
                 </div>`;
+
+            document.getElementById('version-name-input').addEventListener('blur', handleVersionNameUpdate);
+            document.getElementById('version-name-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') e.target.blur();
+            });
+
             const allTextareas = editorSection.querySelectorAll('textarea');
             allTextareas.forEach(textarea => {
                 textarea.addEventListener('input', handleInputChange);
@@ -426,6 +487,7 @@
                 });
             });
             document.getElementById('save-version-btn').onclick = handleManualSaveVersion;
+            document.getElementById('update-version-btn').onclick = handleUpdateCurrentVersion;
             updateFullPromptPreview();
         };
         
@@ -459,6 +521,7 @@
         };
 
         const handleProjectTabClick = (projectId) => {
+            if (isEditingName) return;
             activeProjectId = projectId;
             const activeProject = data.projects.find(p => p.id === activeProjectId);
             if (activeProject && activeProject.prompts.length > 0) {
@@ -477,7 +540,7 @@
             if (!activeProject) { showToast("Najpierw utwórz i wybierz projekt!", "error"); return; }
             const name = prompt("Podaj nazwę dla nowego zestawu promptów:", `Nowy prompt`);
             if (name) {
-                const newVersion = { id: Date.now() + 1, name: `1 - ${formatDate(new Date())}`, content: { ...initialExampleText }, createdAt: new Date().toISOString() };
+                const newVersion = { id: Date.now() + 1, name: `1 - ${formatDate(new Date())}`, content: { ...initialExampleText }, note: '', createdAt: new Date().toISOString() };
                 const newPrompt = { id: Date.now(), name: name, versions: [newVersion] };
                 activeProject.prompts.push(newPrompt);
                 activePromptId = newPrompt.id;
@@ -508,6 +571,7 @@
         };
 
         const handleTabClick = (promptId) => {
+            if (isEditingName) return;
             activePromptId = promptId;
             const activeProject = data.projects.find(p => p.id === activeProjectId);
             const activePrompt = activeProject?.prompts.find(p => p.id === activePromptId);
@@ -516,6 +580,7 @@
         };
 
         const handleVersionClick = (versionId) => {
+            if (isEditingName) return;
             activeVersionId = versionId;
             render();
         };
@@ -528,8 +593,9 @@
             if (activePrompt) {
                 const newVersion = {
                     id: Date.now(), 
-                    name: `${activePrompt.versions.length + 1} - ${formatDate(new Date())}`, 
+                    name: document.getElementById('version-name-input').value || `${activePrompt.versions.length + 1} - ${formatDate(new Date())}`, 
                     createdAt: new Date().toISOString(),
+                    note: document.getElementById('version-note-input').value,
                     content: {
                         role: document.getElementById('prompt-role').value,
                         context: document.getElementById('prompt-context').value,
@@ -544,6 +610,29 @@
                 if(isManual) showToast("Zapisano nową wersję!", "success");
                 else showToast("Zapisano automatycznie nową wersję.", "info");
                 
+                hasUnsavedChanges = false;
+                clearTimeout(autoSaveTimer);
+                render();
+            }
+        };
+
+        const handleUpdateCurrentVersion = () => {
+            const activeProject = data.projects.find(p => p.id === activeProjectId);
+            const activePrompt = activeProject?.prompts.find(p => p.id === activePromptId);
+            const activeVersion = activePrompt?.versions.find(v => v.id === activeVersionId);
+
+            if (activeVersion) {
+                activeVersion.name = document.getElementById('version-name-input').value;
+                activeVersion.note = document.getElementById('version-note-input').value;
+                activeVersion.content = {
+                    role: document.getElementById('prompt-role').value,
+                    context: document.getElementById('prompt-context').value,
+                    instruction: document.getElementById('prompt-instruction').value,
+                    mode: document.getElementById('prompt-mode').value,
+                    guidelines: document.getElementById('prompt-guidelines').value
+                };
+                saveData();
+                showToast("Bieżąca wersja zaktualizowana!", "success");
                 hasUnsavedChanges = false;
                 clearTimeout(autoSaveTimer);
                 render();
@@ -584,49 +673,69 @@
             }
         };
 
-        const handleEditVersionName = (e, versionId) => {
-            const container = e.currentTarget;
-            const currentName = container.textContent;
+        const handleEditName = (element, id, type) => {
+            if (isEditingName) return;
+            isEditingName = true;
+
+            const originalText = element.textContent;
             const input = document.createElement('input');
             input.type = 'text';
-            input.value = currentName;
-            input.className = 'w-full bg-transparent border border-indigo-300 rounded px-1';
-
-            const saveName = () => {
-                const newName = input.value.trim();
-                if (newName && newName !== currentName) {
-                    const activeProject = data.projects.find(p => p.id === activeProjectId);
-                    const activePrompt = activeProject?.prompts.find(p => p.id === activePromptId);
-                    const version = activePrompt?.versions.find(v => v.id === versionId);
-                    if (version) {
-                        version.name = newName;
-                        saveData();
-                        renderVersions(activePrompt);
-                    }
-                }
-                // Restore the original element in its place
-                container.textContent = newName || currentName;
-                input.replaceWith(container);
-            };
+            input.value = originalText;
+            input.className = 'bg-white border border-indigo-300 rounded px-1 -my-1';
             
-            input.addEventListener('blur', saveName);
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') input.blur();
-                if (e.key === 'Escape') {
-                    input.value = currentName; // Revert changes
-                    input.blur();
-                }
-            });
-
-            container.replaceWith(input);
+            element.replaceWith(input);
             input.focus();
             input.select();
+
+            const finishEditing = (save) => {
+                const newName = input.value.trim();
+                if (save && newName && newName !== originalText) {
+                    let item;
+                    if (type === 'project') {
+                        item = data.projects.find(p => p.id === id);
+                    } else if (type === 'prompt') {
+                        const project = data.projects.find(p => p.id === activeProjectId);
+                        item = project?.prompts.find(p => p.id === id);
+                    }
+                    if (item) {
+                        item.name = newName;
+                        saveData();
+                    }
+                }
+                
+                input.replaceWith(element);
+                element.textContent = (save && newName) ? newName : originalText;
+                
+                if (type === 'project') renderProjects();
+                else if (type === 'prompt') renderTabs();
+
+                setTimeout(() => { isEditingName = false; }, 50);
+            };
+
+            const onBlur = () => finishEditing(true);
+            const onKeydown = (e) => {
+                if (e.key === 'Enter') finishEditing(true);
+                else if (e.key === 'Escape') finishEditing(false);
+            };
+            
+            input.addEventListener('blur', onBlur, { once: true });
+            input.addEventListener('keydown', onKeydown);
+        };
+
+        const handleVersionNameUpdate = (e) => {
+            const newName = e.target.value.trim();
+            if (!newName) {
+                showToast('Nazwa wersji nie może być pusta.', 'error');
+                const activeVersion = data.projects.find(p => p.id === activeProjectId)?.prompts.find(p => p.id === activePromptId)?.versions.find(v => v.id === activeVersionId);
+                if(activeVersion) e.target.value = activeVersion.name;
+                return;
+            }
+            handleUpdateCurrentVersion();
         };
 
         // --- HANDLERY IMPORTU/EKSPORTU, KOPIOWANIA, WSTAWEK ---
         const handleCopyPrompt = () => {
             const fullPrompt = document.getElementById('prompt-full-preview').value;
-            // Use the 'copy' command for better compatibility in sandboxed environments
             const textArea = document.createElement("textarea");
             textArea.value = fullPrompt;
             document.body.appendChild(textArea);
@@ -667,7 +776,7 @@
                     if (importedData.projects && Array.isArray(importedData.projects)) {
                         if (confirm("Czy na pewno chcesz nadpisać obecne dane importowanymi? Ta operacja jest nieodwracalna.")) {
                             data = importedData;
-                            if (!data.snippets) data.snippets = []; // Ensure snippets array exists
+                            if (!data.snippets) data.snippets = [];
                             activeProjectId = data.projects.length > 0 ? data.projects[0].id : null;
                             const activeProject = activeProjectId ? data.projects.find(p => p.id === activeProjectId) : null;
                             activePromptId = activeProject?.prompts.length > 0 ? activeProject.prompts[0].id : null;
@@ -687,12 +796,15 @@
             snippetsListContainer.innerHTML = '';
             if (!data.snippets || data.snippets.length === 0) {
                 snippetsListContainer.innerHTML = '<p class="text-slate-500">Brak zapisanych wstawek.</p>';
+                snippetsListContainer.className = '';
                 return;
             }
+            
+            snippetsListContainer.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
 
             data.snippets.forEach(snippet => {
                 const snippetEl = document.createElement('div');
-                snippetEl.className = 'p-4 border rounded-lg bg-slate-50 flex flex-col justify-between';
+                snippetEl.className = 'p-4 border rounded-lg bg-slate-50 flex flex-col justify-between shadow-sm';
 
                 const contentDiv = document.createElement('div');
                 contentDiv.innerHTML = `
@@ -733,24 +845,48 @@
             const id = Number(snippetIdInput.value);
             const name = snippetNameInput.value.trim().replace(/\s+/g, '_');
             const content = snippetContentInput.value.trim();
-            if (!name || !content) { showToast("Nazwa i treść wstawki nie mogą być puste.", "error"); return; }
-            if (id) {
-                const snippet = data.snippets.find(s => s.id === id);
-                if (snippet) { snippet.name = name; snippet.content = content; }
-            } else {
-                if (data.snippets.some(s => s.name === name)) { showToast("Wstawka o takiej nazwie już istnieje.", "error"); return; }
+
+            if (!name || !content) {
+                showToast("Nazwa i treść wstawki nie mogą być puste.", "error");
+                return;
+            }
+
+            const existingSnippetWithName = data.snippets.find(s => s.name === name);
+
+            if (id) { // Edycja
+                if (existingSnippetWithName && existingSnippetWithName.id !== id) {
+                    showToast("Inna wstawka o tej nazwie już istnieje.", "error");
+                    return;
+                }
+                const snippetToUpdate = data.snippets.find(s => s.id === id);
+                if (snippetToUpdate) {
+                    snippetToUpdate.name = name;
+                    snippetToUpdate.content = content;
+                }
+            } else { // Dodawanie nowej
+                if (existingSnippetWithName) {
+                    showToast("Wstawka o takiej nazwie już istnieje.", "error");
+                    return;
+                }
                 data.snippets.push({ id: Date.now(), name, content });
             }
+
             saveData();
             showToast("Wstawka zapisana!", "success");
             clearSnippetForm();
             renderSnippetsModal();
-            render(); // Re-render editor to show new snippet options
+            render();
         };
+
 
         const handleEditSnippet = (id) => {
             const snippet = data.snippets.find(s => s.id === id);
-            if (snippet) { snippetIdInput.value = snippet.id; snippetNameInput.value = snippet.name; snippetContentInput.value = snippet.content; }
+            if (snippet) { 
+                snippetIdInput.value = snippet.id; 
+                snippetNameInput.value = snippet.name; 
+                snippetContentInput.value = snippet.content; 
+                snippetNameInput.focus();
+            }
         };
 
         const handleDeleteSnippet = (id) => {
@@ -760,7 +896,7 @@
                 showToast("Wstawka usunięta.", "success");
                 clearSnippetForm();
                 renderSnippetsModal();
-                render(); // Re-render editor to remove snippet options
+                render();
             }
         };
 
@@ -867,14 +1003,16 @@
         let draggedTab = null;
         const setupDragAndDrop = (container, getItems, setItems) => {
             container.addEventListener('dragstart', (e) => {
-                if (!e.target.classList.contains('tab')) return;
-                draggedTab = e.target;
-                setTimeout(() => e.target.classList.add('dragging'), 0);
+                const target = e.target.closest('.tab');
+                if (!target) return;
+                draggedTab = target;
+                setTimeout(() => target.classList.add('dragging'), 0);
             });
 
             container.addEventListener('dragend', (e) => {
-                if (!e.target.classList.contains('tab')) return;
-                e.target.classList.remove('dragging');
+                const target = e.target.closest('.tab');
+                if (!target) return;
+                target.classList.remove('dragging');
                 draggedTab = null;
             });
 
