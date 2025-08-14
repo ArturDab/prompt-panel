@@ -4,36 +4,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menedżer Promptów v5</title>
+    <title>Menedżer Promptów v5 (Zaktualizowany)</title>
 
-    <!-- Zasoby ładowane z sieci CDN -->
+    <!-- SECTION: CDN & Fonts / Zasoby CDN i Czcionki -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500&family=Roboto+Mono:wght@400;500&family=Source+Code+Pro:wght@400;500&family=Hanken+Grotesk:wght@400;500;600&family=Merriweather:wght@400;700&family=Noto+Serif:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500&family=Roboto+Mono:wght@400;500&family=Source+Code+Pro:wght@400;500&family=Hanken+Grotesk:wght@400;500;600&family=Merriweather:wght@400;700&family=Noto+Serif:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Quill Rich Text Editor -->
+    <!-- SECTION: Quill Rich Text Editor / Edytor Tekstu Quill -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
+    <!-- SECTION: CSS Styles / Style CSS -->
     <style>
+        /* -------------------------------------------------- */
+        /* 1. Root Variables & Base Styles / Zmienne Główne i Style Bazowe
+        /* -------------------------------------------------- */
         :root {
             --sidebar-top: 81px; /* Domyślna wartość, aktualizowana przez JS */
             --editor-font-family: 'Inter', sans-serif;
             --editor-font-size: 1rem; /* Domyślna wielkość czcionki w edytorze */
+            --editor-line-height: 1.5; /* Domyślna interlinia */
+            --editor-paragraph-spacing: 1rem; /* Domyślny odstęp między akapitami */
             
+            /* Kolory akcentu (domyślnie Indigo) */
             --accent-50: 238, 242, 255;   /* indigo-50 */
             --accent-100: 224, 231, 255;  /* indigo-100 */
             --accent-200: 199, 210, 254;  /* indigo-200 */
             --accent-500: 99, 102, 241;   /* indigo-500 */
-            --accent-600: 79, 70, 229;    /* indigo-600 */
-            --accent-800: 55, 48, 163;    /* indigo-800 */
+            --accent-600: 79, 70, 229;   /* indigo-600 */
+            --accent-800: 55, 48, 163;   /* indigo-800 */
             --accent-950: 30, 27, 75;     /* indigo-950 */
         }
 
         html { font-size: 85%; }
         body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
 
+        /* -------------------------------------------------- */
+        /* 2. Custom Scrollbar & Dragging / Własny Pasek Przewijania i Przeciąganie
+        /* -------------------------------------------------- */
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
@@ -47,48 +57,68 @@
             margin: 0.25rem 0;
             height: 40px;
         }
-
+        
+        /* -------------------------------------------------- */
+        /* 3. Snippet Dropdown / Rozwijane Menu Snippetów
+        /* -------------------------------------------------- */
         .snippet-dropdown {
             position: fixed;
             background-color: white; border: 1px solid #e2e8f0;
             border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            z-index: 1000; max-height: 200px; overflow-y: auto; max-width: 20rem;
+            z-index: 1000; max-height: 250px; overflow-y: auto; max-width: 20rem;
+            display: flex; flex-direction: column;
         }
         .snippet-item { padding: 0.5rem 1rem; cursor: pointer; }
         .snippet-item:hover { background-color: #f1f5f9; }
 
-        #prompt-content-container .ql-editor,
-        #snippet-content-editor .ql-editor {
+        /* -------------------------------------------------- */
+        /* 4. Quill Editor Styles / Style Edytora Quill
+        /* -------------------------------------------------- */
+        #prompt-editor-quill-container .ql-editor,
+        #snippet-content-editor .ql-editor,
+        .chain-step-editor .ql-editor {
             font-family: var(--editor-font-family);
             font-size: var(--editor-font-size);
+            line-height: var(--editor-line-height);
         }
 
-        #prompt-editor-quill-container .ql-toolbar {
+        .ql-editor p, .ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor ol, .ql-editor ul {
+           margin-bottom: var(--editor-paragraph-spacing);
+        }
+        .ql-editor > *:last-child {
+            margin-bottom: 0;
+        }
+
+        .ql-toolbar {
             flex-shrink: 0;
             border-top-left-radius: 0.5rem;
             border-top-right-radius: 0.5rem;
             border-bottom: 0 !important;
         }
-        #prompt-editor-quill-container .ql-container {
+        .ql-container {
             flex-grow: 1;
             overflow-y: auto;
             border-bottom-left-radius: 0.5rem;
             border-bottom-right-radius: 0.5rem;
-            resize: vertical;
+            display: flex;
+            flex-direction: column;
         }
-        #prompt-editor-quill-container .ql-container.ql-snow {
+        .ql-container.ql-snow {
             border-top: 1px solid #e2e8f0;
         }
-        .dark #prompt-editor-quill-container .ql-container.ql-snow {
+        .dark .ql-container.ql-snow {
             border-top-color: #475569;
         }
-        #prompt-editor-quill-container .ql-editor {
+        .ql-editor {
             min-height: 150px;
+            flex-grow: 1;
         }
-
         .ql-editor.ql-disabled { background-color: #f8fafc; }
         .dark .ql-editor.ql-disabled { background-color: #1e293b; }
 
+        /* -------------------------------------------------- */
+        /* 5. Fullscreen Mode Styles / Style Trybu Pełnoekranowego
+        /* -------------------------------------------------- */
         #fullscreen-overlay {
             position: fixed; inset: 0; width: 100vw; height: 100vh;
             z-index: 1001; background-color: rgba(15,23,42,0.6);
@@ -111,18 +141,58 @@
             flex-shrink: 0;
         }
         .dark #fullscreen-bar { border-color: #334155; }
-        #fullscreen-window #prompt-content-container {
+        #fullscreen-window #editor-view {
             flex-grow: 1;
             padding: 1rem;
+            display: flex;
+            flex-direction: column;
         }
         #fullscreen-window .ql-container { height: auto !important; flex-grow: 1; }
+        #fullscreen-window #prompt-content-container,
+        #fullscreen-window #chain-editor-container {
+            height: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
 
+        /* -------------------------------------------------- */
+        /* 6. UI Components (Status, Pills, etc.) / Komponenty UI (Status, Przełączniki, itp.)
+        /* -------------------------------------------------- */
         .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; cursor: pointer; }
         .status-dot.experimental { background-color: #3b82f6; }
         .status-dot.production { background-color: #22c55e; }
         .version-date { font-size: 0.8em; color: #64748b; }
         .dark .version-date { color: #94a3b8; }
         
+        .pill-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .pill-switch input { opacity: 0; width: 0; height: 0; }
+        .pill-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .pill-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .pill-slider { background-color: rgba(var(--accent-500), 1); }
+        input:checked + .pill-slider:before { transform: translateX(24px); }
+        .pill-slider svg { position: absolute; top: 50%; transform: translateY(-50%); transition: opacity 0.2s; color: rgba(var(--accent-500), 1); }
+        .pill-slider .lock-open-icon { right: 6px; opacity: 1; }
+        .pill-slider .lock-closed-icon { left: 6px; opacity: 0; color: white; }
+        input:checked + .pill-slider .lock-open-icon { opacity: 0; }
+        input:checked + .pill-slider .lock-closed-icon { opacity: 1; }
+
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid rgba(var(--accent-500), 1);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* -------------------------------------------------- */
+        /* 7. Accent Color Helpers / Klasy Pomocnicze Koloru Akcentu
+        /* -------------------------------------------------- */
         .bg-accent-50 { background-color: rgba(var(--accent-50), 1); }
         .bg-accent-100 { background-color: rgba(var(--accent-100), 1); }
         .bg-accent-500 { background-color: rgba(var(--accent-500), 1); }
@@ -135,7 +205,9 @@
         .disabled\:bg-slate-300:disabled { background-color: #d1d5db; }
         .dark .disabled\:bg-slate-300:disabled { background-color: #475569; }
 
-        /* Dark Mode */
+        /* -------------------------------------------------- */
+        /* 8. Dark Mode Overrides / Nadpisania dla Trybu Ciemnego
+        /* -------------------------------------------------- */
         .dark .bg-slate-100 { background-color: #0f172a; }
         .dark .text-slate-800 { color: #e2e8f0; }
         .dark .bg-white { background-color: #1e293b; }
@@ -169,6 +241,9 @@
         .dark .favorites-fade-right { background: linear-gradient(to left, #1e293b, transparent); }
         .dark .bg-accent-100 { background-color: rgba(var(--accent-800), 0.5); }
 
+        /* -------------------------------------------------- */
+        /* 9. Layout & Responsive Styles / Układ i Style Responsywne
+        /* -------------------------------------------------- */
         .favorites-wrapper { position: relative; }
         .favorites-fade {
             position: absolute; top: 0; bottom: 0; width: 40px; pointer-events: none; z-index: 1;
@@ -179,14 +254,17 @@
         @media (min-width: 1024px) {
             #left-sidebar {
                 position: sticky;
-                top: calc(var(--sidebar-top) + 1rem);
-                height: calc(100dvh - var(--sidebar-top) - 2rem);
+                top: var(--sidebar-top);
+                height: calc(100vh - var(--sidebar-top) - 1rem);
             }
         }
         .left-stack { height: 100%; display: flex; flex-direction: column; }
         .fixed-panel { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
         .fixed-panel > ul { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
         
+        /* -------------------------------------------------- */
+        /* 10. Modals, Toasts & Tooltips / Okna Modalne, Powiadomienia i Podpowiedzi
+        /* -------------------------------------------------- */
         #toast-notification {
             position: fixed; bottom: 1.5rem; left: 50%; display: none;
             transform: translate(-50%, 200%); transition: transform 0.3s ease-in-out; z-index: 1000;
@@ -216,30 +294,15 @@
         .color-swatch.selected { border-color: #64748b; }
         .dark .color-swatch.selected { border-color: white; }
 
-        .pill-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
-        .pill-switch input { opacity: 0; width: 0; height: 0; }
-        .pill-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .pill-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .pill-slider { background-color: rgba(var(--accent-500), 1); }
-        input:checked + .pill-slider:before { transform: translateX(24px); }
-        .pill-slider svg { position: absolute; top: 50%; transform: translateY(-50%); transition: opacity 0.2s; color: rgba(var(--accent-500), 1); }
-        .pill-slider .lock-open-icon { right: 6px; opacity: 1; }
-        .pill-slider .lock-closed-icon { left: 6px; opacity: 0; color: white; }
-        input:checked + .pill-slider .lock-open-icon { opacity: 0; }
-        input:checked + .pill-slider .lock-closed-icon { opacity: 1; }
-
-        /* NOWA FUNKCJA: Style dla wskaźnika ładowania */
-        .loader {
-            border: 4px solid #f3f3f3; /* Light grey */
-            border-top: 4px solid rgba(var(--accent-500), 1);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+        /* -------------------------------------------------- */
+        /* 11. Animations / Animacje
+        /* -------------------------------------------------- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
         }
     </style>
 </head>
@@ -247,7 +310,7 @@
 <body class="bg-slate-100 text-slate-800 transition-colors duration-300">
 
     <div id="app" class="flex flex-col h-screen min-h-0">
-        <!-- Header -->
+        <!-- SECTION: Header / Nagłówek -->
         <header id="main-header" class="bg-white shadow-md p-4 flex justify-between items-center z-40 sticky top-0">
             <div class="flex-1"></div>
             <div class="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
@@ -257,6 +320,7 @@
                 <input type="file" id="import-file" class="hidden" accept=".json">
                 <button id="export-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex-shrink-0 whitespace-nowrap">Eksportuj</button>
                 
+                <!-- Typography Controls -->
                 <div class="flex items-center space-x-2 rounded-full p-1 bg-slate-100 dark:bg-slate-700 flex-shrink-0">
                     <select id="font-family-select" data-tooltip="Zmień czcionkę" class="bg-transparent text-slate-500 text-sm focus:outline-none cursor-pointer border-0">
                         <option value="'Inter', sans-serif">Inter</option>
@@ -264,13 +328,31 @@
                         <option value="'Merriweather', serif">Merriweather</option>
                         <option value="'Noto Serif', serif">Noto Serif</option>
                         <option value="'Hanken Grotesk', sans-serif">Hanken Grotesk</option>
+                        <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
                         <option value="'Roboto Mono', monospace">Roboto Mono</option>
                         <option value="'Source Code Pro', monospace">Source Code Pro</option>
                     </select>
+                </div>
+                <div class="flex items-center space-x-2 rounded-full p-1 bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+                    <svg data-tooltip="Wielkość czcionki" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 ml-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.243 3.03a1 1 0 01.727 1.213L9.53 6h1.94l.56-1.757a1 1 0 111.94.62l-1.428 4.47a1 1 0 01-.97.765H10.38l-.56 1.757a1 1 0 11-1.94-.62l1.428-4.47a1 1 0 01.97-.765H9.62l-.56-1.757a1 1 0 011.213-.727zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
                     <button id="font-size-down-btn" data-tooltip="Zmniejsz" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg></button>
+                    <span class="text-xs w-6 text-center text-slate-500" id="font-size-display">1.0</span>
                     <button id="font-size-up-btn" data-tooltip="Zwiększ" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg></button>
                 </div>
+                <div class="flex items-center space-x-2 rounded-full p-1 bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+                    <svg data-tooltip="Interlinia" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 ml-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 7a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 13a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                    <button id="line-height-down-btn" data-tooltip="Zmniejsz" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg></button>
+                    <span class="text-xs w-6 text-center text-slate-500" id="line-height-display">1.5</span>
+                    <button id="line-height-up-btn" data-tooltip="Zwiększ" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg></button>
+                </div>
+                <div class="flex items-center space-x-2 rounded-full p-1 bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+                    <svg data-tooltip="Odstęp akapitu" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 ml-1" viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 8a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 12a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" /></svg>
+                    <button id="paragraph-spacing-down-btn" data-tooltip="Zmniejsz" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg></button>
+                    <span class="text-xs w-6 text-center text-slate-500" id="paragraph-spacing-display">1.0</span>
+                    <button id="paragraph-spacing-up-btn" data-tooltip="Zwiększ" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg></button>
+                </div>
                 
+                <!-- Theme/Color Controls -->
                 <div id="color-palette" data-tooltip="Zmień kolor akcentu">
                     <button id="color-palette-btn" class="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
@@ -282,6 +364,7 @@
             </div>
         </header>
         
+        <!-- SECTION: Favorites Bar / Pasek Ulubionych -->
         <div id="favorites-bar" class="bg-accent-50 dark:bg-accent-950-50 border-b border-accent-200 dark:border-slate-800 px-4 py-2 hidden fixed inset-x-0 z-20">
             <div class="favorites-wrapper group relative flex items-center">
                 <button id="fav-left" class="absolute left-1 top-1/2 -translate-y-1/2 z-20 p-1 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 backdrop-blur-sm rounded-full shadow-md text-slate-600 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity hidden"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
@@ -292,30 +375,38 @@
             </div>
         </div>
 
+        <!-- SECTION: Main Content / Główna Zawartość -->
         <main class="flex-grow flex flex-col lg:flex-row p-4 gap-4 min-h-0">
+            <!-- SECTION: Left Sidebar / Lewy Panel Boczny -->
             <div id="left-sidebar" class="w-full lg:w-1/3 flex flex-col md:flex-row lg:flex-col gap-4 transition-all duration-300">
                 <div class="left-stack w-full flex flex-col gap-4">
+                    <!-- Projects Panel / Panel Projektów -->
                     <div class="fixed-panel bg-white p-4 rounded-xl shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-3"><h2 class="text-lg font-semibold">Projekty</h2><button id="add-project-btn" data-tooltip="Nowy projekt" class="bg-accent-500 hover:bg-accent-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg></button></div>
                         <input type="text" id="project-search" placeholder="Szukaj projektów..." class="w-full p-2 mb-2 border border-slate-300 rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600">
                         <ul id="projects-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-1 pr-1"></ul>
                     </div>
+                    <!-- Prompts Panel / Panel Promptów -->
                     <div class="fixed-panel bg-white p-4 rounded-xl shadow-sm flex flex-col">
                         <div class="flex justify-between items-center mb-3"><h2 class="text-lg font-semibold">Prompty</h2><button id="add-prompt-btn" data-tooltip="Nowy prompt" class="bg-accent-500 hover:bg-accent-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg></button></div>
                         <input type="text" id="prompt-search" placeholder="Szukaj promptów..." class="w-full p-2 mb-2 border border-slate-300 rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600">
                         <ul id="prompts-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-1 pr-1"></ul>
                     </div>
+                    <!-- Versions Panel / Panel Wersji -->
                     <div class="fixed-panel bg-white p-4 rounded-xl shadow-sm flex flex-col">
-                        <div class="flex justify-between items-center mb-3"><h2 class="text-lg font-semibold">Wersje</h2><button id="add-version-btn" data-tooltip="Nowa wersja" class="bg-accent-500 hover:bg-accent-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg></button></div>
+                        <div class="flex justify-between items-center mb-3"><h2 class="text-lg font-semibold">Wersje / Kroki</h2><button id="add-version-btn" data-tooltip="Nowa wersja" class="bg-accent-500 hover:bg-accent-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg></button></div>
                         <input type="text" id="version-search" placeholder="Szukaj wersji..." class="w-full p-2 mb-2 border border-slate-300 rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600">
                         <ul id="versions-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-1 pr-1"></ul>
                     </div>
                 </div>
             </div>
 
-            <div id="right-panel" class="w-full lg:w-2/3 bg-white p-4 rounded-xl shadow-sm flex flex-col gap-4 min-h-0 transition-all duration-300">
-                <div id="editor-view" class="flex-grow flex flex-col gap-4 hidden min-h-0"></div>
-                <div id="placeholder-view" class="flex-grow flex flex-col items-center justify-center text-center text-slate-500">
+            <!-- SECTION: Right Panel (Editor Area) / Prawy Panel (Obszar Edytora) -->
+            <div id="right-panel" class="w-full lg:w-2/3 bg-white rounded-xl shadow-sm flex flex-col min-h-0 overflow-y-auto custom-scrollbar">
+                <div id="editor-view" class="p-4 flex flex-col min-h-0 hidden">
+                    <!-- Content will be injected here -->
+                </div>
+                <div id="placeholder-view" class="flex-grow flex flex-col items-center justify-center text-center text-slate-500 p-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-slate-300 placeholder-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                     <h3 class="text-xl font-semibold mt-4">Witaj w Menedżerze Promptów!</h3>
                     <p class="mt-2 max-w-xs">Dodaj swój pierwszy projekt używając przycisku <span class="inline-flex items-center justify-center bg-accent-500 text-white w-5 h-5 rounded-full font-bold">+</span> w panelu "Projekty", aby zacząć.</p>
@@ -324,7 +415,7 @@
         </main>
     </div>
 
-    <!-- Modals & Notifications -->
+    <!-- SECTION: Modals & Notifications / Okna Modalne i Powiadomienia -->
     <div id="template-library-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-4xl flex flex-col gap-4 max-h-[90vh]">
             <div class="flex justify-between items-center">
@@ -343,17 +434,8 @@
     <div id="toast-notification" class="bg-green-500 text-white font-bold py-2 px-6 rounded-full shadow-lg"></div>
     <div id="global-tooltip" class="hidden"></div>
     
+    <!-- SECTION: Floating Action Buttons (FAB) / Pływające Przyciski Akcji -->
     <div id="fab-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 hidden">
-        <button id="fab-generate" data-tooltip="Generuj (Ctrl+Enter)" class="bg-emerald-500 hover:bg-emerald-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.293 5.293a1 1 0 010 1.414L13 21m-1-4v4m-2-2h4" /></svg>
-        </button>
-        <button id="fab-save" data-tooltip="Zapisz zmiany (Ctrl+S)" class="bg-blue-500 hover:bg-blue-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2V4z"/>
-              <path d="M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
-              <path d="M8 12a1 1 0 100 2h4a1 1 0 100-2H8z"/>
-            </svg>
-        </button>
         <button id="fab-copy" data-tooltip="Kopiuj końcowy prompt (Ctrl+C)" class="bg-teal-500 hover:bg-teal-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
         </button>
@@ -361,7 +443,31 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- STATE MANAGEMENT --- 
+        /*
+        ==================================================
+        // --- TABLE OF CONTENTS / SPIS TREŚCI ---
+        ==================================================
+        1.  STATE MANAGEMENT / ZARZĄDZANIE STANEM
+        2.  DOM ELEMENT CACHING / PAMIĘĆ PODRĘCZNA ELEMENTÓW DOM
+        3.  DYNAMIC EDITOR CONTAINER SETUP / KONFIGURACJA DYNAMICZNEGO KONTENERA EDYTORA
+        4.  QUILL EDITOR INSTANCES / INSTANCJE EDYTORA QUILL
+        5.  DATA PERSISTENCE (LocalStorage) / TRWAŁOŚĆ DANYCH (LocalStorage)
+        6.  UTILITY FUNCTIONS / FUNKCJE POMOCNICZE
+        7.  SNIPPET & VARIABLE FUNCTIONS / FUNKCJE ZWIĄZANE ZE SNIPPETAMI I ZMIENNYMI
+        8.  CORE RENDER FUNCTIONS / GŁÓWNE FUNKCJE RENDERUJĄCE
+        9.  UI/VIEW UPDATE FUNCTIONS / FUNKCJE AKTUALIZUJĄCE INTERFEJS UŻYTKOWNIKA
+        10. CRUD & ACTION HANDLERS / OBSŁUGA AKCJI I OPERACJI CRUD
+        11. DRAG & DROP LOGIC / LOGIKA PRZECIĄGNIJ I UPUŚĆ
+        12. EVENT LISTENERS (Buttons, Inputs, etc.) / NASŁUCHIWANIE ZDARZEŃ (Przyciski, Pola, itp.)
+        13. MODAL & OVERLAY LOGIC / LOGIKA OKIEN MODALNYCH I NAKŁADEK
+        14. TEMPLATE LIBRARY LOGIC / LOGIKA BIBLIOTEKI SZABLONÓW
+        15. GLOBAL LISTENERS (Tooltip, Resize, etc.) / GLOBALNE NASŁUCHIWANIE ZDARZEŃ
+        16. THEME & PERSONALIZATION / MOTYWY I PERSONALIZACJA
+        17. INITIALIZATION / INICJALIZACJA
+        ==================================================
+        */
+
+        // --- 1. STATE MANAGEMENT / ZARZĄDZANIE STANEM ---
         let state = {
             projects: [],
             snippets: [],
@@ -370,8 +476,7 @@
             selectedVersionId: null,
         };
 
-        // --- DOM ELEMENTS --- 
-        const appContainer = document.getElementById('app');
+        // --- 2. DOM ELEMENT CACHING / PAMIĘĆ PODRĘCZNA ELEMENTÓW DOM ---
         const mainHeader = document.getElementById('main-header');
         const projectsList = document.getElementById('projects-list');
         const promptsList = document.getElementById('prompts-list');
@@ -384,111 +489,39 @@
         const importBtn = document.getElementById('import-btn');
         const exportBtn = document.getElementById('export-btn');
         const importFile = document.getElementById('import-file');
-        const leftSidebar = document.getElementById('left-sidebar');
+        const rightPanel = document.getElementById('right-panel');
         
         const projectSearch = document.getElementById('project-search');
         const promptSearch = document.getElementById('prompt-search');
         const versionSearch = document.getElementById('version-search');
         
         const fabContainer = document.getElementById('fab-container');
-        const fabSave = document.getElementById('fab-save');
         const fabCopy = document.getElementById('fab-copy');
-        const fabGenerate = document.getElementById('fab-generate');
         
-        // --- DYNAMIC EDITOR CONTAINER ---
-        const promptContentContainer = document.createElement('div');
-        promptContentContainer.id = 'prompt-content-container';
-        promptContentContainer.className = 'flex-grow flex flex-col min-h-0';
-        promptContentContainer.innerHTML = `
-            <div class="flex-shrink-0"> <!-- Top non-scrolling part -->
-                <div id="editor-controls" class="flex justify-between items-center mb-2 flex-wrap md:flex-nowrap gap-2">
-                    <div class="flex items-center gap-4">
-                        <label class="block text-sm font-medium text-slate-600">Treść promptu</label>
-                        <div class="flex items-center gap-2" data-tooltip="Wyłącz, aby zapobiec przypadkowym zmianom.">
-                            <span class="text-sm text-slate-500">Edycja</span>
-                            <label class="pill-switch">
-                                <input type="checkbox" id="editor-lock-checkbox">
-                                <span class="pill-slider">
-                                    <svg class="lock-open-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm0 2a3 3 0 013 3v2H7V7a3 3 0 013-3z" /></svg>
-                                    <svg class="lock-closed-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm-2 7a2 2 0 114 0v2H8V9z" clip-rule="evenodd" /></svg>
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <button id="change-prompt-type-btn" class="hidden text-sm text-purple-600 hover:text-purple-800 font-semibold">Zmień typ</button>
-                        <button id="insert-snippet-btn" class="text-sm text-accent-600 hover:text-accent-800 font-semibold">Wstaw snippet</button>
-                        <button id="toggle-fullscreen-btn" class="text-sm text-slate-500 hover:text-accent-600 font-semibold">Pełny ekran</button>
-                    </div>
-                </div>
-            </div>
-            <div id="prompt-editor-quill-container" class="flex-grow flex flex-col min-h-0 relative"></div>
-            <div class="flex-shrink-0 mt-4"> <!-- Bottom non-scrolling part -->
-                <div id="variables-container" class="hidden mb-4">
-                    <label class="block text-sm font-medium text-slate-600 mb-2">Zmienne dynamiczne</label>
-                    <div id="variables-inputs" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                </div>
-                <div id="assistant-container" class="mt-4">
-                    <div class="flex justify-between items-center mb-1">
-                        <label for="assistant-content" class="block text-sm font-medium text-slate-600">Dodatkowe informacje (kontekst)</label>
-                        <button id="toggle-assistant-btn" data-tooltip="Pokaż/ukryj pole na dodatkowe informacje" class="text-slate-400 hover:text-slate-600 transition-transform duration-200">
-                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                        </button>
-                    </div>
-                    <div id="assistant-wrapper" class="hidden">
-                        <textarea id="assistant-content" rows="4" class="w-full p-2 border border-slate-300 rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="Wklej tutaj dodatkowe dane, artykuły, fragmenty kodu itp., które AI ma wykorzystać..."></textarea>
-                    </div>
-                </div>
-                <div class="flex-grow flex flex-col min-h-[150px] border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="block text-sm font-medium text-slate-600">Końcowy prompt (podgląd)</label>
-                    </div>
-                    <div id="combined-output-preview" class="w-full h-full flex-grow mt-2 p-3 border bg-slate-50 border-slate-300 rounded-lg overflow-y-auto custom-scrollbar"></div>
-                </div>
-                <!-- NOWA FUNKCJA: Sekcja odpowiedzi AI -->
-                <div class="flex-grow flex flex-col min-h-[150px] border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="block text-sm font-medium text-slate-600">Odpowiedź AI</label>
-                    </div>
-                    <div id="ai-response-container" class="w-full h-full flex-grow mt-2 p-3 border bg-slate-50 border-slate-300 rounded-lg overflow-y-auto custom-scrollbar whitespace-pre-wrap">
-                        <div id="ai-response-spinner" class="hidden mx-auto my-4 loader"></div>
-                        <div id="ai-response-content"></div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        const toggleFullscreenBtn = promptContentContainer.querySelector('#toggle-fullscreen-btn');
-        const insertSnippetBtn = promptContentContainer.querySelector('#insert-snippet-btn');
-        const combinedOutputPreview = promptContentContainer.querySelector('#combined-output-preview');
-        const editorLockCheckbox = promptContentContainer.querySelector('#editor-lock-checkbox');
-        const changePromptTypeBtn = promptContentContainer.querySelector('#change-prompt-type-btn');
-        const variablesContainer = promptContentContainer.querySelector('#variables-container');
-        const variablesInputs = promptContentContainer.querySelector('#variables-inputs');
-        const assistantContainer = promptContentContainer.querySelector('#assistant-container');
-        const assistantWrapper = promptContentContainer.querySelector('#assistant-wrapper');
-        const toggleAssistantBtn = promptContentContainer.querySelector('#toggle-assistant-btn');
-        const assistantContent = promptContentContainer.querySelector('#assistant-content');
-        const aiResponseSpinner = promptContentContainer.querySelector('#ai-response-spinner');
-        const aiResponseContent = promptContentContainer.querySelector('#ai-response-content');
-        let originalEditorParent = editorView;
-        
-        // Theme Elements 
+        // Theme & Personalization Elements
         const themeToggleBtn = document.getElementById('theme-toggle-btn');
         const themeIconLight = document.getElementById('theme-icon-light');
         const themeIconDark = document.getElementById('theme-icon-dark');
         const fontSizeUpBtn = document.getElementById('font-size-up-btn');
         const fontSizeDownBtn = document.getElementById('font-size-down-btn');
+        const fontSizeDisplay = document.getElementById('font-size-display');
         const fontFamilySelect = document.getElementById('font-family-select');
+        const lineHeightUpBtn = document.getElementById('line-height-up-btn');
+        const lineHeightDownBtn = document.getElementById('line-height-down-btn');
+        const lineHeightDisplay = document.getElementById('line-height-display');
+        const paragraphSpacingUpBtn = document.getElementById('paragraph-spacing-up-btn');
+        const paragraphSpacingDownBtn = document.getElementById('paragraph-spacing-down-btn');
+        const paragraphSpacingDisplay = document.getElementById('paragraph-spacing-display');
         const colorPaletteBtn = document.getElementById('color-palette-btn');
         const colorOptionsContainer = document.getElementById('color-options');
         
-        // Favorites Elements 
+        // Favorites Bar Elements
         const favoritesBar = document.getElementById('favorites-bar');
         const favoritesContainer = document.getElementById('favorites-container');
         const favLeftBtn = document.getElementById('fav-left');
         const favRightBtn = document.getElementById('fav-right');
         
+        // Snippet Modal Elements
         const manageSnippetsBtn = document.getElementById('manage-snippets-btn');
         const snippetModal = document.getElementById('snippet-modal');
         const closeSnippetModalBtn = document.getElementById('close-snippet-modal-btn');
@@ -500,11 +533,13 @@
         const snippetsListModal = document.getElementById('snippets-list-modal');
         const snippetDropdown = document.getElementById('snippet-dropdown');
 
+        // Template Library Modal Elements
         const templateLibraryBtn = document.getElementById('template-library-btn');
         const templateLibraryModal = document.getElementById('template-library-modal');
         const closeTemplateLibraryModalBtn = document.getElementById('close-template-library-modal-btn');
         const templateList = document.getElementById('template-list');
 
+        // Confirmation Modal Elements
         const confirmationModal = document.getElementById('confirmation-modal');
         const modalTitle = document.getElementById('modal-title');
         const modalText = document.getElementById('modal-text');
@@ -512,12 +547,89 @@
         const modalCancel = document.getElementById('modal-cancel');
         let confirmationCallback = null;
 
+        // Toast & Tooltip Elements
         const toast = document.getElementById('toast-notification');
         let toastTimeout;
-
         const globalTooltip = document.getElementById('global-tooltip');
         
-        // --- QUILL EDITOR INSTANCES ---
+        // --- 3. DYNAMIC EDITOR CONTAINER SETUP / KONFIGURACJA DYNAMICZNEGO KONTENERA EDYTORA ---
+        const simpleEditorContainer = document.createElement('div');
+        simpleEditorContainer.id = 'prompt-content-container';
+        simpleEditorContainer.className = 'flex flex-col gap-4 flex-grow min-h-0';
+        simpleEditorContainer.innerHTML = `<div id="prompt-editor-quill-container" class="relative flex-grow flex flex-col"></div>`;
+
+        const chainEditorContainer = document.createElement('div');
+        chainEditorContainer.id = 'chain-editor-container';
+        chainEditorContainer.className = 'flex flex-col gap-4 flex-grow min-h-0';
+        chainEditorContainer.innerHTML = `
+            <div id="chain-steps-container" class="flex-grow space-y-4 overflow-y-auto custom-scrollbar pr-2"></div>
+            <div class="flex-shrink-0">
+                <button id="add-chain-step-btn" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Dodaj Krok</button>
+            </div>
+        `;
+
+        const sharedControlsContainer = document.createElement('div');
+        sharedControlsContainer.id = 'shared-controls-container';
+        sharedControlsContainer.innerHTML = `
+            <div id="editor-controls" class="flex justify-between items-center mb-2 flex-wrap md:flex-nowrap gap-2">
+                <div class="flex items-center gap-4">
+                    <label class="block text-sm font-medium text-slate-600">Treść promptu</label>
+                    <div class="flex items-center gap-2" data-tooltip="Wyłącz, aby zapobiec przypadkowym zmianom.">
+                        <span class="text-sm text-slate-500">Edycja</span>
+                        <label class="pill-switch">
+                            <input type="checkbox" id="editor-lock-checkbox">
+                            <span class="pill-slider">
+                                <svg class="lock-open-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm0 2a3 3 0 013 3v2H7V7a3 3 0 013-3z" /></svg>
+                                <svg class="lock-closed-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm-2 7a2 2 0 114 0v2H8V9z" clip-rule="evenodd" /></svg>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button id="change-prompt-type-btn" class="hidden text-sm text-purple-600 hover:text-purple-800 font-semibold">Zmień typ</button>
+                    <button id="insert-snippet-btn" class="text-sm text-accent-600 hover:text-accent-800 font-semibold">Wstaw snippet</button>
+                    <button id="toggle-fullscreen-btn" class="text-sm text-slate-500 hover:text-accent-600 font-semibold">Pełny ekran</button>
+                </div>
+            </div>
+            <div id="main-editor-area" class="flex-grow flex flex-col min-h-0"></div>
+            <div class="mt-4 flex flex-col gap-4">
+                <div id="variables-container" class="hidden">
+                    <label class="block text-sm font-medium text-slate-600 mb-2">Zmienne dynamiczne</label>
+                    <div id="variables-inputs" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+                <div id="assistant-container">
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="assistant-content" class="block text-sm font-medium text-slate-600">Dodatkowe informacje (kontekst)</label>
+                        <button id="toggle-assistant-btn" data-tooltip="Pokaż/ukryj pole na dodatkowe informacje" class="text-slate-400 hover:text-slate-600 transition-transform duration-200">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                        </button>
+                    </div>
+                    <div id="assistant-wrapper">
+                        <textarea id="assistant-content" rows="4" class="w-full p-2 border border-slate-300 rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="Wklej tutaj dodatkowe dane, artykuły, fragmenty kodu itp., które AI ma wykorzystać..."></textarea>
+                    </div>
+                </div>
+                <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Końcowy prompt (podgląd)</label>
+                    <div id="combined-output-preview" class="w-full min-h-[100px] mt-2 p-3 border bg-slate-50 border-slate-300 rounded-lg overflow-y-auto custom-scrollbar whitespace-pre-wrap"></div>
+                </div>
+            </div>
+        `;
+        editorView.appendChild(sharedControlsContainer);
+
+        const mainEditorArea = sharedControlsContainer.querySelector('#main-editor-area');
+        const toggleFullscreenBtn = sharedControlsContainer.querySelector('#toggle-fullscreen-btn');
+        const insertSnippetBtn = sharedControlsContainer.querySelector('#insert-snippet-btn');
+        const combinedOutputPreview = sharedControlsContainer.querySelector('#combined-output-preview');
+        const editorLockCheckbox = sharedControlsContainer.querySelector('#editor-lock-checkbox');
+        const changePromptTypeBtn = sharedControlsContainer.querySelector('#change-prompt-type-btn');
+        const variablesContainer = sharedControlsContainer.querySelector('#variables-container');
+        const variablesInputs = sharedControlsContainer.querySelector('#variables-inputs');
+        const assistantContainer = sharedControlsContainer.querySelector('#assistant-container');
+        const assistantWrapper = sharedControlsContainer.querySelector('#assistant-wrapper');
+        const toggleAssistantBtn = sharedControlsContainer.querySelector('#toggle-assistant-btn');
+        const assistantContent = sharedControlsContainer.querySelector('#assistant-content');
+        
+        // --- 4. QUILL EDITOR INSTANCES / INSTANCJE EDYTORA QUILL ---
         let chainQuillInstances = new Map();
         const quillToolbarOptions = [
             [{ 'header': [1, 2, 3, false] }],
@@ -526,10 +638,9 @@
             ['clean']
         ];
 
-        const promptEditor = new Quill(promptContentContainer.querySelector('#prompt-editor-quill-container'), {
-            modules: { 
-                toolbar: quillToolbarOptions
-            },
+        const promptEditorHost = simpleEditorContainer.querySelector('#prompt-editor-quill-container');
+        const promptEditor = new Quill(promptEditorHost, {
+            modules: { toolbar: quillToolbarOptions },
             placeholder: 'Zacznij pisać, wpisz # (snippet) lub [zmienna]...',
             theme: 'snow'
         });
@@ -539,7 +650,47 @@
             theme: 'snow'
         });
 
-        // --- DATA PERSISTENCE --- 
+        // --- 5. DATA PERSISTENCE (LocalStorage) / TRWAŁOŚĆ DANYCH (LocalStorage) ---
+        const debounce = (func, delay) => {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        };
+
+        const autoSaveChanges = () => {
+            const prompt = getSelectedPrompt();
+            if(!prompt) return;
+            
+            prompt.updatedAt = Date.now();
+
+            if (prompt.type === 'simple') {
+                const version = getSelectedVersion();
+                if (version) {
+                    version.content = promptEditor.root.innerHTML;
+                    version.assistantContent = assistantContent.value;
+                    version.updatedAt = prompt.updatedAt;
+                }
+            } else if (prompt.type === 'chain') {
+                prompt.steps.forEach(step => {
+                    const quillInstance = chainQuillInstances.get(step.id);
+                    if (quillInstance) {
+                        step.content = quillInstance.root.innerHTML;
+                    }
+                });
+            }
+            
+            if (saveData()) {
+                showToast("Zapisano automatycznie!", "success");
+                renderVersions();
+                renderPrompts();
+            }
+        };
+        
+        const debouncedAutoSave = debounce(autoSaveChanges, 1500);
+
         const saveData = () => {
             try {
                 localStorage.setItem('promptManagerDataV5', JSON.stringify(state));
@@ -568,15 +719,18 @@
                                     const now = Date.now();
                                     if (pr.createdAt === undefined) pr.createdAt = now;
                                     if (pr.updatedAt === undefined) pr.updatedAt = pr.createdAt;
+                                    
                                     const sourceArray = pr.type === 'chain' ? pr.steps : pr.versions;
                                     if(sourceArray) {
                                         sourceArray.forEach(v => {
+                                            if(v.id === undefined) v.id = generateId();
                                             if(v.status === undefined) v.status = 'experimental';
                                             if(v.createdAt === undefined) v.createdAt = now;
                                             if(v.updatedAt === undefined) v.updatedAt = v.createdAt;
                                             if(v.isAssistantVisible === undefined) v.isAssistantVisible = true;
                                             if(v.assistantContent === undefined) v.assistantContent = "";
-                                            if (pr.type === 'chain' && v.name === undefined) v.name = `Nowy Krok`;
+                                            if (pr.type === 'chain' && v.name === undefined) v.name = `Krok`;
+                                            if (pr.type === 'simple' && v.name === undefined) v.name = `Wersja`;
                                         });
                                     }
                                 });
@@ -590,7 +744,7 @@
             }
         };
 
-        // --- UTILITY FUNCTIONS --- 
+        // --- 6. UTILITY FUNCTIONS / FUNKCJE POMOCNICZE ---
         const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const formatDate = (timestamp) => {
             if (!timestamp) return '';
@@ -620,26 +774,31 @@
             toastTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
         };
 
-        // --- SNIPPET & VARIABLE FUNCTIONS --- 
+        // --- 7. SNIPPET & VARIABLE FUNCTIONS / FUNKCJE ZWIĄZANE ZE SNIPPETAMI I ZMIENNYMI ---
         const replaceSnippets = (text) => {
             if (!text) return '';
             return text.replace(/#([a-zA-Z0-9_]+)/g, (match, snippetName) => {
                 const snippet = state.snippets.find(s => s.name === snippetName.trim());
-                return snippet ? snippet.content : match; 
+                if (!snippet) return match;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = snippet.content;
+                return tempDiv.innerText;
             });
         };
         
-        const replaceVariables = (text) => {
+        const replaceVariables = (text, variables) => {
             if (!text) return '';
             return text.replace(/\[([^\]]+)\]/g, (match, varName) => {
-                const input = document.querySelector(`input[data-variable-name="${varName}"]`);
-                return input && input.value ? input.value : '';
+                return variables[varName] || '';
             });
         };
         
         const renderVariableInputs = () => {
             const prompt = getSelectedPrompt();
-            if (!prompt) return;
+            if (!prompt) {
+                variablesContainer.classList.add('hidden');
+                return;
+            }
 
             let textToScan = '';
             if (prompt.type === 'simple') {
@@ -651,7 +810,7 @@
                     return tempDiv.innerText;
                 }).join(' ');
             }
-
+            
             const variableRegex = /\[([^\]]+)\]/g;
             let match;
             const foundVariables = new Set();
@@ -659,17 +818,13 @@
                 foundVariables.add(match[1]);
             }
 
-            const currentVariablesContainer = editorView.querySelector('#variables-container');
-            if (!currentVariablesContainer) return;
-            const currentVariablesInputs = currentVariablesContainer.querySelector('#variables-inputs');
-
             if (foundVariables.size === 0) {
-                currentVariablesContainer.classList.add('hidden');
+                variablesContainer.classList.add('hidden');
                 return;
             }
 
-            currentVariablesContainer.classList.remove('hidden');
-            currentVariablesInputs.innerHTML = '';
+            variablesContainer.classList.remove('hidden');
+            variablesInputs.innerHTML = '';
             
             foundVariables.forEach(varName => {
                 const div = document.createElement('div');
@@ -678,7 +833,7 @@
                     <input type="text" id="var-${varName}" data-variable-name="${varName}" class="w-full p-2 border border-slate-300 rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="Wprowadź wartość dla ${varName}...">
                 `;
                 div.querySelector('input').oninput = updateCombinedOutput;
-                currentVariablesInputs.appendChild(div);
+                variablesInputs.appendChild(div);
             });
         };
 
@@ -749,53 +904,72 @@
             }, 'Usuń');
         };
 
-        const showSnippetDropdown = (bounds) => {
-            renderSnippetDropdown();
+        const showSnippetDropdown = (bounds, activeEditor, filterText = '') => {
+            renderSnippetDropdown(activeEditor, filterText);
             if (bounds) {
                 snippetDropdown.style.left = `${bounds.left}px`;
                 snippetDropdown.style.top = `${bounds.bottom + 5}px`;
             }
             snippetDropdown.classList.remove('hidden');
+            const searchInput = snippetDropdown.querySelector('.snippet-search-input');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.value = filterText;
+            }
         };
 
-        const renderSnippetDropdown = () => {
+        const renderSnippetDropdown = (activeEditor, filterText = '') => {
             snippetDropdown.innerHTML = '';
-            if (state.snippets.length === 0) {
-                snippetDropdown.innerHTML = '<div class="p-2 text-slate-500">Brak wstawek</div>';
-            } else {
-                state.snippets.forEach(snippet => {
-                    const item = document.createElement('div');
-                    item.className = 'snippet-item';
-                    item.textContent = snippet.name;
-                    item.onclick = (e) => {
-                        e.stopPropagation();
-                        insertSnippetPlaceholder(snippet.name);
-                        snippetDropdown.classList.add('hidden');
-                    };
-                    snippetDropdown.appendChild(item);
-                });
-            }
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'Szukaj...';
+            searchInput.className = 'snippet-search-input w-full p-2 text-sm border-b dark:bg-slate-700 dark:border-slate-600 focus:outline-none';
+            searchInput.value = filterText;
+            
+            const listContainer = document.createElement('div');
+            listContainer.className = 'flex-grow overflow-y-auto';
+
+            const renderList = (filter) => {
+                listContainer.innerHTML = '';
+                const filteredSnippets = state.snippets.filter(s => s.name.toLowerCase().includes(filter.toLowerCase()));
+
+                if (filteredSnippets.length === 0) {
+                    listContainer.innerHTML = '<div class="p-2 text-slate-500 text-sm">Brak pasujących wstawek.</div>';
+                } else {
+                    filteredSnippets.forEach(snippet => {
+                        const item = document.createElement('div');
+                        item.className = 'snippet-item';
+                        item.textContent = snippet.name;
+                        item.onclick = (e) => {
+                            e.stopPropagation();
+                            insertSnippetPlaceholder(snippet.name, activeEditor);
+                            snippetDropdown.classList.add('hidden');
+                        };
+                        listContainer.appendChild(item);
+                    });
+                }
+            };
+
+            searchInput.oninput = () => renderList(searchInput.value);
+            
+            snippetDropdown.appendChild(searchInput);
+            snippetDropdown.appendChild(listContainer);
+            renderList(filterText);
         };
 
-        const insertSnippetPlaceholder = (name) => {
-            const range = promptEditor.getSelection(true);
-            const triggerText = promptEditor.getText(range.index - 1, 1);
+        const insertSnippetPlaceholder = (name, activeEditor) => {
+            const editor = activeEditor || promptEditor;
+            const range = editor.getSelection(true);
+            const textBeforeCursor = editor.getText(0, range.index);
+            const lastHashIndex = textBeforeCursor.lastIndexOf('#');
             
-            let insertIndex = range.index;
-            let lengthToDelete = 0;
-
-            if (triggerText === '#') {
-                insertIndex -= 1;
-                lengthToDelete = 1;
-            }
-            
-            const placeholder = `#${name} `;
-            promptEditor.deleteText(insertIndex, lengthToDelete, 'user');
-            promptEditor.insertText(insertIndex, placeholder, 'user');
-            promptEditor.setSelection(insertIndex + placeholder.length);
+            const placeholder = `${name} `;
+            editor.deleteText(lastHashIndex, range.index - lastHashIndex, 'user');
+            editor.insertText(lastHashIndex, placeholder, 'user');
+            editor.setSelection(lastHashIndex + placeholder.length);
         };
 
-        // --- RENDER FUNCTIONS --- 
+        // --- 8. CORE RENDER FUNCTIONS / GŁÓWNE FUNKCJE RENDERUJĄCE ---
         const renderAll = () => {
             renderProjects();
             renderPrompts();
@@ -840,12 +1014,12 @@
                     const favChip = document.createElement('div');
                     favChip.className = 'flex-shrink-0 cursor-pointer flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-full border bg-white text-slate-700 border-slate-200 hover:bg-slate-200 hover:border-slate-300 transition-all duration-200 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600 dark:hover:border-slate-500';
                     favChip.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-400 dark:text-amber-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                           <span class="font-semibold truncate" style="max-width: 18ch;">${fav.name}</span>`;
+                                            <span class="font-semibold truncate" style="max-width: 18ch;">${fav.name}</span>`;
                     favChip.dataset.projectId = fav.projectId;
                     favChip.dataset.promptId = fav.id;
                     favChip.dataset.type = 'favorite';
                     favChip.draggable = true;
-                    favChip.onclick = () => { selectProject(fav.projectId); renderPrompts(); selectPrompt(fav.id); };
+                    favChip.onclick = () => { selectProject(fav.projectId); selectPrompt(fav.id); };
                     favoritesContainer.appendChild(favChip);
                 });
             } else {
@@ -1049,7 +1223,7 @@
             
             const sourceArray = prompt.type === 'chain' ? prompt.steps : prompt.versions;
             if (!sourceArray || sourceArray.length === 0) {
-                const message = prompt.type === 'chain' ? 'Dodaj pierwszy krok.' : 'Brak wersji.';
+                const message = prompt.type === 'chain' ? 'Dodaj pierwszy krok w edytorze.' : 'Dodaj nową wersję.';
                 renderEmptyState(versionsList, '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>', message);
                 return;
             }
@@ -1062,7 +1236,7 @@
             filteredVersions.forEach(version => {
                 const li = createListItem({
                     id: version.id, name: version.name, type: 'version', selected: version.id === state.selectedVersionId, status: version.status, createdAt: version.createdAt, updatedAt: version.updatedAt,
-                    onDelete: (id) => showConfirmation('Usunąć wersję?', `Czy na pewno chcesz usunąć wersję "${version.name}"?`, () => deleteVersion(id), 'Usuń'),
+                    onDelete: (id) => showConfirmation('Usunąć wersję/krok?', `Czy na pewno chcesz usunąć "${version.name}"?`, () => deleteVersion(id), 'Usuń'),
                     onSelect: selectVersion, onNameUpdate: updateVersionName,
                     onDuplicate: duplicateVersion,
                     onStatusToggle: (id) => { const v = findVersion(state.selectedProjectId, state.selectedPromptId, id); if(v) { v.status = v.status === 'experimental' ? 'production' : 'experimental'; v.updatedAt = Date.now(); saveData(); renderVersions(); } }
@@ -1071,52 +1245,24 @@
             });
         };
         
+        // --- 9. UI/VIEW UPDATE FUNCTIONS / FUNKCJE AKTUALIZUJĄCE INTERFEJS UŻYTKOWNIKA ---
         const setEditorLock = (isLocked) => {
             promptEditor.enable(!isLocked);
-            editorLockCheckbox.checked = !isLocked;
+            editorLockCheckbox.checked = isLocked;
         };
 
         const renderEditor = () => {
             const prompt = getSelectedPrompt();
             if (prompt) {
+                editorView.classList.remove('hidden');
+                placeholderView.classList.add('hidden');
+                fabContainer.classList.remove('hidden');
+
                 if (prompt.type === 'simple') {
                     renderSimpleEditor();
                 } else if (prompt.type === 'chain') {
                     renderChainEditor();
                 }
-            } else {
-                editorView.innerHTML = '';
-                placeholderView.classList.remove('hidden');
-                fabContainer.classList.add('hidden');
-            }
-        };
-
-        const renderSimpleEditor = () => {
-            const version = getSelectedVersion();
-            if (version) {
-                 if (!editorView.contains(promptContentContainer)) {
-                     editorView.innerHTML = '';
-                     editorView.appendChild(promptContentContainer);
-                 }
-                editorView.classList.remove('hidden');
-                placeholderView.classList.add('hidden');
-                fabContainer.classList.remove('hidden');
-                
-                changePromptTypeBtn.classList.remove('hidden');
-                changePromptTypeBtn.textContent = 'Zmień na łańcuch';
-
-                if (promptEditor.root.innerHTML !== (version.content || '')) {
-                   promptEditor.root.innerHTML = version.content || '';
-                }
-                
-                assistantContent.value = version.assistantContent || '';
-                assistantWrapper.classList.toggle('hidden', !version.isAssistantVisible);
-                toggleAssistantBtn.classList.toggle('rotate-180', version.isAssistantVisible);
-                assistantContainer.classList.remove('hidden');
-
-                setEditorLock(false);
-                renderVariableInputs();
-                updateCombinedOutput();
             } else {
                 editorView.classList.add('hidden');
                 placeholderView.classList.remove('hidden');
@@ -1124,44 +1270,48 @@
             }
         };
 
+        const renderSimpleEditor = () => {
+            mainEditorArea.innerHTML = '';
+            mainEditorArea.appendChild(simpleEditorContainer);
+            
+            changePromptTypeBtn.classList.remove('hidden');
+            changePromptTypeBtn.textContent = 'Zmień na łańcuch';
+            editorLockCheckbox.parentElement.parentElement.classList.remove('hidden');
+            assistantContainer.classList.remove('hidden');
+
+            const version = getSelectedVersion();
+            if (version) {
+                 if (promptEditor.root.innerHTML !== (version.content || '')) {
+                   promptEditor.root.innerHTML = version.content || '';
+                }
+                
+                assistantContent.value = version.assistantContent || '';
+                assistantWrapper.classList.toggle('hidden', !version.isAssistantVisible);
+                toggleAssistantBtn.classList.toggle('rotate-180', version.isAssistantVisible);
+                
+                setEditorLock(editorLockCheckbox.checked);
+            } else {
+                 promptEditor.root.innerHTML = '';
+                 assistantContent.value = '';
+            }
+            renderVariableInputs();
+            updateCombinedOutput();
+        };
+
         const renderChainEditor = () => {
+            mainEditorArea.innerHTML = '';
+            mainEditorArea.appendChild(chainEditorContainer);
+
             const prompt = getSelectedPrompt();
             if (!prompt) return;
-
-            editorView.innerHTML = '';
-            editorView.classList.remove('hidden');
-            placeholderView.classList.add('hidden');
-            fabContainer.classList.remove('hidden');
             
-            const chainContainer = document.createElement('div');
-            chainContainer.className = 'flex flex-col gap-4 h-full';
-            
-            chainContainer.innerHTML = `
-                <div class="flex-shrink-0">
-                    <div id="variables-container" class="hidden my-4">
-                        <label class="block text-sm font-medium text-slate-600 mb-2">Zmienne dynamiczne</label>
-                        <div id="variables-inputs" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-                    </div>
-                </div>
-                <div id="chain-steps-container" class="flex-grow space-y-4 overflow-y-auto custom-scrollbar pr-2 -mr-2"></div>
-                <div class="flex-shrink-0">
-                    <button id="add-chain-step-btn" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Dodaj Krok</button>
-                    <div class="flex-grow flex flex-col min-h-[150px] border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
-                        <label for="combined-output-preview" class="block text-sm font-medium text-slate-600 mb-1">Końcowy prompt (podgląd)</label>
-                        <div id="combined-output-preview" class="w-full h-full flex-grow mt-2 p-3 border bg-slate-50 border-slate-300 rounded-lg overflow-y-auto custom-scrollbar"></div>
-                    </div>
-                </div>
-            `;
-            editorView.appendChild(chainContainer);
-            
-            const editorControls = promptContentContainer.querySelector('#editor-controls');
-            if(editorControls) {
-                 changePromptTypeBtn.classList.remove('hidden');
-                 changePromptTypeBtn.textContent = 'Zmień na prosty';
-            }
+            changePromptTypeBtn.classList.remove('hidden');
+            changePromptTypeBtn.textContent = 'Zmień na prosty';
+            editorLockCheckbox.parentElement.parentElement.classList.add('hidden');
+            assistantContainer.classList.add('hidden');
 
-
-            const stepsContainer = chainContainer.querySelector('#chain-steps-container');
+            const stepsContainer = chainEditorContainer.querySelector('#chain-steps-container');
+            stepsContainer.innerHTML = '';
             chainQuillInstances.clear();
 
             prompt.steps.forEach((step, index) => {
@@ -1174,10 +1324,8 @@
                             <input type="text" value="${step.name}" data-step-id="${step.id}" class="step-name-input text-lg font-semibold bg-transparent focus:outline-none focus:bg-slate-100 dark:focus:bg-slate-700 rounded px-2 py-1 w-full">
                         </div>
                         <div class="flex items-center gap-1">
-                            <button data-step-id="${step.id}" data-tooltip="Duplikuj" class="duplicate-step-btn text-slate-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2-2H9a2 2 0 01-2-2V9z"></path><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h6a2 2 0 00-2-2H5z"></path></svg></button>
-                            <button data-step-id="${step.id}" data-tooltip="Przesuń w górę" class="move-step-up-btn text-slate-400 hover:text-blue-500 p-1 disabled:opacity-25" ${index === 0 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" /></svg></button>
-                            <button data-step-id="${step.id}" data-tooltip="Przesuń w dół" class="move-step-down-btn text-slate-400 hover:text-blue-500 p-1 disabled:opacity-25" ${index === prompt.steps.length - 1 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
-                            <button data-step-id="${step.id}" data-tooltip="Usuń" class="delete-step-btn text-slate-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            <button data-step-id="${step.id}" data-tooltip="Duplikuj krok" class="duplicate-step-btn text-slate-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2-2H9a2 2 0 01-2-2V9z"></path><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h6a2 2 0 00-2-2H5z"></path></svg></button>
+                            <button data-step-id="${step.id}" data-tooltip="Usuń krok" class="delete-step-btn text-slate-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                         </div>
                     </div>
                     <div class="chain-step-editor" style="height: 150px;"></div>
@@ -1193,7 +1341,7 @@
 
                 quill.on('text-change', () => {
                     step.content = quill.root.innerHTML;
-                    prompt.updatedAt = Date.now();
+                    debouncedAutoSave();
                     updateCombinedOutput();
                     renderVariableInputs();
                 });
@@ -1201,16 +1349,18 @@
                 const nameInput = stepEl.querySelector('.step-name-input');
                 nameInput.onchange = () => {
                     step.name = nameInput.value.trim();
-                    prompt.updatedAt = Date.now();
-                    saveData();
+                    debouncedAutoSave();
+                    renderVersions();
                 };
             });
             
-            chainContainer.querySelector('#add-chain-step-btn').onclick = () => {
-                prompt.steps.push({ id: generateId(), name: 'Nowy Krok', content: '' });
-                prompt.updatedAt = Date.now();
+            chainEditorContainer.querySelector('#add-chain-step-btn').onclick = () => {
+                const now = Date.now();
+                prompt.steps.push({ id: generateId(), name: `Krok ${prompt.steps.length + 1}`, content: '', createdAt: now, updatedAt: now });
+                prompt.updatedAt = now;
                 saveData();
                 renderChainEditor();
+                renderVersions();
             };
 
             stepsContainer.addEventListener('click', e => {
@@ -1225,21 +1375,20 @@
 
                 if (button.classList.contains('delete-step-btn')) {
                     prompt.steps = prompt.steps.filter(s => s.id !== stepId);
-                } else if (button.classList.contains('move-step-up-btn') && index > 0) {
-                    [prompt.steps[index], prompt.steps[index - 1]] = [prompt.steps[index - 1], prompt.steps[index]];
-                } else if (button.classList.contains('move-step-down-btn') && index < prompt.steps.length - 1) {
-                    [prompt.steps[index], prompt.steps[index + 1]] = [prompt.steps[index + 1], prompt.steps[index]];
                 } else if (button.classList.contains('duplicate-step-btn')) {
                     const originalStep = prompt.steps[index];
                     const newStep = JSON.parse(JSON.stringify(originalStep));
                     newStep.id = generateId();
                     newStep.name = `${originalStep.name} (kopia)`;
+                    const now = Date.now();
+                    newStep.createdAt = newStep.updatedAt = now;
                     prompt.steps.splice(index + 1, 0, newStep);
                 }
                 
                 prompt.updatedAt = Date.now();
                 saveData(); 
                 renderChainEditor();
+                renderVersions();
             });
 
             renderVariableInputs();
@@ -1254,24 +1403,32 @@
         
         const updateSidebarTop = () => {
             const headerHeight = mainHeader.offsetHeight;
-            const favBarHeight = favoritesBar.classList.contains('hidden') ? 0 : favoritesBar.offsetHeight;
-            
+            const favBarVisible = !favoritesBar.classList.contains('hidden');
+            const favBarHeight = favBarVisible ? favoritesBar.offsetHeight : 0;
             favoritesBar.style.top = `${headerHeight}px`;
-            document.querySelector('main').style.paddingTop = `${favBarHeight + 16}px`;
-            document.documentElement.style.setProperty('--sidebar-top', `${headerHeight}px`);
+            const mainEl = document.querySelector('main');
+            if (mainEl) mainEl.style.paddingTop = `${favBarVisible ? favBarHeight + 16 : 16}px`;
+            const totalTop = headerHeight + favBarHeight;
+            document.documentElement.style.setProperty('--sidebar-top', `${totalTop}px`);
         };
 
-        // --- EVENT HANDLERS & ACTIONS --- 
-        const selectProject = (projectId) => { if (state.selectedProjectId !== projectId) { state.selectedProjectId = projectId; state.selectedPromptId = null; state.selectedVersionId = null; promptSearch.value = ''; versionSearch.value = ''; renderAll(); } };
-        const selectPrompt = (promptId) => { if (state.selectedPromptId !== promptId) { state.selectedPromptId = promptId; state.selectedVersionId = null; versionSearch.value = ''; const prompt = getSelectedPrompt(); if (prompt && prompt.type === 'simple' && prompt.versions && prompt.versions.length > 0) { state.selectedVersionId = prompt.versions[0].id; } renderAll(); } };
-        const selectVersion = (versionId) => { if (state.selectedVersionId !== versionId) { state.selectedVersionId = versionId; renderAll(); } };
+        // --- 10. CRUD & ACTION HANDLERS / OBSŁUGA AKCJI I OPERACJI CRUD ---
+        const triggerViewAnimation = () => {
+            rightPanel.classList.remove('fade-in');
+            void rightPanel.offsetWidth; 
+            rightPanel.classList.add('fade-in');
+        };
+
+        const selectProject = (projectId) => { if (state.selectedProjectId !== projectId) { state.selectedProjectId = projectId; state.selectedPromptId = null; state.selectedVersionId = null; promptSearch.value = ''; versionSearch.value = ''; renderAll(); triggerViewAnimation(); } };
+        const selectPrompt = (promptId) => { if (state.selectedPromptId !== promptId) { state.selectedPromptId = promptId; state.selectedVersionId = null; versionSearch.value = ''; const prompt = getSelectedPrompt(); if (prompt) { const sourceArray = prompt.type === 'chain' ? prompt.steps : prompt.versions; if (sourceArray && sourceArray.length > 0) { state.selectedVersionId = sourceArray[0].id; } } renderAll(); triggerViewAnimation(); } };
+        const selectVersion = (versionId) => { if (state.selectedVersionId !== versionId) { state.selectedVersionId = versionId; renderAll(); triggerViewAnimation(); } };
 
         addProjectBtn.onclick = () => {
             const newProject = { id: generateId(), name: `Nowy Projekt ${state.projects.length + 1}`, prompts: [] };
             state.projects.unshift(newProject);
-            saveData();
             selectProject(newProject.id);
             addPrompt('simple');
+            saveData();
         };
 
         const addPrompt = (type) => {
@@ -1285,12 +1442,12 @@
                     newPrompt.versions.unshift(newVersion);
                 } else { // chain
                     newPrompt = { id: generateId(), type: 'chain', name: `Nowy Łańcuch ${project.prompts.length + 1}`, steps: [], isFavorite: false, createdAt: now, updatedAt: now };
-                    newPrompt.steps.push({ id: generateId(), name: 'Nowy Krok', content: '' });
+                    newPrompt.steps.push({ id: generateId(), name: 'Krok 1', content: '', createdAt: now, updatedAt: now });
                 }
                 
                 project.prompts.unshift(newPrompt);
-                saveData();
                 selectPrompt(newPrompt.id);
+                saveData();
             }
         };
 
@@ -1304,16 +1461,19 @@
 
             if (prompt.type === 'simple') {
                 showConfirmation('Zmienić typ na Łańcuch?', 'Obecna treść promptu stanie się pierwszym krokiem nowego łańcucha. Ta operacja jest odwracalna.', () => {
-                    const currentVersion = getSelectedVersion() || prompt.versions[0];
+                    const currentVersion = getSelectedVersion() || prompt.versions[0] || { content: '' };
                     prompt.type = 'chain';
+                    const now = Date.now();
                     prompt.steps = [{
                         id: generateId(),
                         name: 'Krok 1',
-                        content: currentVersion.content || ''
+                        content: currentVersion.content || '',
+                        createdAt: now,
+                        updatedAt: now,
                     }];
                     delete prompt.versions;
-                    prompt.updatedAt = Date.now();
-                    state.selectedVersionId = null;
+                    prompt.updatedAt = now;
+                    state.selectedVersionId = prompt.steps[0].id;
                     saveData();
                     renderAll();
                 }, 'Zmień');
@@ -1348,8 +1508,8 @@
                 const newVersion = { id: generateId(), name: `Wersja ${prompt.versions.length + 1}`, content: '', status: 'experimental', createdAt: now, updatedAt: now, isAssistantVisible: true, assistantContent: '' };
                 prompt.versions.unshift(newVersion);
                 prompt.updatedAt = now;
-                saveData();
                 selectVersion(newVersion.id);
+                saveData();
             }
         };
         
@@ -1366,9 +1526,9 @@
                 newPrompt.createdAt = now;
                 newPrompt.updatedAt = now;
 
-                const sourceArray = newPrompt.type === 'chain' ? newPrompt.steps : newPrompt.versions;
-                if(sourceArray) {
-                    sourceArray.forEach(v => {
+                const sourceArrayKey = newPrompt.type === 'chain' ? 'steps' : 'versions';
+                if(newPrompt[sourceArrayKey]) {
+                    newPrompt[sourceArrayKey].forEach(v => {
                         v.id = generateId();
                         v.createdAt = v.updatedAt = now;
                     });
@@ -1376,273 +1536,63 @@
 
                 const originalIndex = project.prompts.findIndex(p => p.id === promptId);
                 project.prompts.splice(originalIndex + 1, 0, newPrompt);
-                saveData();
-                renderPrompts();
                 selectPrompt(newPrompt.id);
+                saveData();
             }
         };
 
         const duplicateVersion = (versionId) => {
             const prompt = getSelectedPrompt();
-            if (prompt && prompt.type === 'simple') {
-                const originalVersion = findVersion(state.selectedProjectId, state.selectedPromptId, versionId);
-                if(originalVersion) {
-                    const newVersion = JSON.parse(JSON.stringify(originalVersion));
-                    newVersion.id = generateId();
-                    newVersion.name = `${originalVersion.name} (kopia)`;
-                    const now = Date.now();
-                    newVersion.createdAt = newVersion.updatedAt = now;
-                    
-                    const originalIndex = prompt.versions.findIndex(v => v.id === versionId);
-                    prompt.versions.splice(originalIndex + 1, 0, newVersion);
-                    prompt.updatedAt = now;
-                    saveData();
-                    renderVersions();
-                    selectVersion(newVersion.id);
-                }
+            if (!prompt) return;
+            
+            const sourceArray = prompt.type === 'chain' ? prompt.steps : prompt.versions;
+            const originalVersion = sourceArray.find(v => v.id === versionId);
+            
+            if(originalVersion) {
+                const newVersion = JSON.parse(JSON.stringify(originalVersion));
+                newVersion.id = generateId();
+                newVersion.name = `${originalVersion.name} (kopia)`;
+                const now = Date.now();
+                newVersion.createdAt = newVersion.updatedAt = now;
+                
+                const originalIndex = sourceArray.findIndex(v => v.id === versionId);
+                sourceArray.splice(originalIndex + 1, 0, newVersion);
+                prompt.updatedAt = now;
+                selectVersion(newVersion.id);
+                saveData();
             }
         };
 
         const deleteProject = (projectId) => { state.projects = state.projects.filter(p => p.id !== projectId); if (state.selectedProjectId === projectId) { state.selectedProjectId = null; state.selectedPromptId = null; state.selectedVersionId = null; } renderAll(); saveData(); };
         const deletePrompt = (promptId) => { const project = getSelectedProject(); if (project) { project.prompts = project.prompts.filter(p => p.id !== promptId); if (state.selectedPromptId === promptId) { state.selectedPromptId = null; state.selectedVersionId = null; } renderAll(); saveData(); } };
-        const deleteVersion = (versionId) => { const prompt = getSelectedPrompt(); if (prompt && prompt.type === 'simple') { const vIndex = prompt.versions.findIndex(v => v.id === versionId); prompt.versions = prompt.versions.filter(v => v.id !== versionId); if (state.selectedVersionId === versionId) { state.selectedVersionId = null; if (prompt.versions.length > 0) { const newIndex = Math.max(0, vIndex - 1); state.selectedVersionId = prompt.versions[newIndex].id; } } prompt.updatedAt = Date.now(); renderAll(); saveData(); } };
+        const deleteVersion = (versionId) => { 
+            const prompt = getSelectedPrompt(); 
+            if (!prompt) return;
+            const sourceArrayKey = prompt.type === 'chain' ? 'steps' : 'versions';
+            const sourceArray = prompt[sourceArrayKey];
+            
+            const vIndex = sourceArray.findIndex(v => v.id === versionId);
+            if (vIndex === -1) return;
 
-        const updateVersionName = (id, newName) => { const v = findVersion(state.selectedProjectId, state.selectedPromptId, id); if (v) { v.name = newName; v.updatedAt = Date.now(); getSelectedPrompt().updatedAt = Date.now(); renderVersions(); saveData(); } };
+            prompt[sourceArrayKey] = sourceArray.filter(v => v.id !== versionId); 
+            
+            if (state.selectedVersionId === versionId) { 
+                state.selectedVersionId = null; 
+                if (prompt[sourceArrayKey].length > 0) { 
+                    const newIndex = Math.max(0, vIndex - 1); 
+                    state.selectedVersionId = prompt[sourceArrayKey][newIndex].id; 
+                } 
+            } 
+            prompt.updatedAt = Date.now(); 
+            renderAll(); 
+            saveData(); 
+        };
+
+        const updateVersionName = (id, newName) => { const v = getSelectedVersion(); if (v) { v.name = newName; v.updatedAt = Date.now(); getSelectedPrompt().updatedAt = Date.now(); renderVersions(); saveData(); } };
         const updateProjectName = (id, newName) => { const p = findProject(id); if (p) { p.name = newName; renderProjects(); saveData(); } };
         const updatePromptName = (id, newName) => { const p = findPrompt(state.selectedProjectId, id); if (p) { p.name = newName; p.updatedAt = Date.now(); renderAll(); saveData(); } };
 
-        promptEditor.on('text-change', (delta, oldDelta, source) => {
-            if (source === 'user') {
-                const prompt = getSelectedPrompt();
-                if(prompt) prompt.updatedAt = Date.now();
-                renderVariableInputs();
-                updateCombinedOutput();
-                const range = promptEditor.getSelection();
-                if (range) {
-                    const text = promptEditor.getText(range.index - 1, 1);
-                    if (text === '#') {
-                        const editorBounds = promptEditor.container.getBoundingClientRect();
-                        const rangeBounds = promptEditor.getBounds(range.index);
-                        const finalBounds = {
-                            left: editorBounds.left + rangeBounds.left,
-                            bottom: editorBounds.top + rangeBounds.bottom,
-                        };
-                        showSnippetDropdown(finalBounds);
-                    } else {
-                        snippetDropdown.classList.add('hidden');
-                    }
-                }
-            }
-        });
-        
-        editorLockCheckbox.onchange = () => {
-            setEditorLock(!editorLockCheckbox.checked);
-        };
-
-        function updateCombinedOutput() {
-            const prompt = getSelectedPrompt();
-            if (!prompt) return;
-
-            const previewContainer = editorView.querySelector('#combined-output-preview');
-            if (!previewContainer) return;
-            previewContainer.innerHTML = '';
-
-            let allFragmentsHTML = [];
-            let allFragmentsPlainText = [];
-
-            if (prompt.type === 'simple') {
-                const mainContentHTML = promptEditor.root.innerHTML || '';
-                allFragmentsHTML.push(mainContentHTML);
-            } else if (prompt.type === 'chain') {
-                allFragmentsHTML = prompt.steps.map(step => {
-                    const editor = chainQuillInstances.get(step.id);
-                    return editor ? editor.root.innerHTML : step.content;
-                });
-            }
-
-            allFragmentsHTML.forEach((fragmentHTML, index) => {
-                let processedHTML = replaceSnippets(fragmentHTML);
-                processedHTML = replaceVariables(processedHTML);
-
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = processedHTML;
-                const plainText = tempDiv.innerText.trim();
-                allFragmentsPlainText.push(plainText);
-
-                const fragmentWrapper = document.createElement('div');
-                fragmentWrapper.className = 'relative group';
-                fragmentWrapper.innerHTML = processedHTML;
-
-                if (prompt.type === 'chain' && allFragmentsHTML.length > 1) {
-                    const copyBtn = document.createElement('button');
-                    copyBtn.textContent = 'Kopiuj fragment';
-                    copyBtn.className = 'absolute top-0 right-0 text-xs bg-slate-200 dark:bg-slate-600 px-2 py-1 rounded-md transition-opacity';
-                    copyBtn.onclick = () => {
-                        navigator.clipboard.writeText(plainText).then(() => showToast("Fragment skopiowany!"));
-                    };
-                    fragmentWrapper.appendChild(copyBtn);
-                }
-                previewContainer.appendChild(fragmentWrapper);
-
-                if (index < allFragmentsHTML.length - 1) {
-                    const hr = document.createElement('hr');
-                    hr.className = 'my-4 border-slate-200 dark:border-slate-700';
-                    previewContainer.appendChild(hr);
-                }
-            });
-
-            const assistantText = assistantContent.value.trim();
-            if (assistantText) {
-                if(allFragmentsPlainText.some(t => t.length > 0)) {
-                     previewContainer.appendChild(document.createElement('br'));
-                }
-                const escapedContent = assistantText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-                const assistantDiv = document.createElement('div');
-                assistantDiv.innerHTML = escapedContent.replace(/\n/g, '<br>');
-                previewContainer.appendChild(assistantDiv);
-                allFragmentsPlainText.push(assistantText);
-            }
-            
-            previewContainer.dataset.plainText = allFragmentsPlainText.join('\n\n').trim();
-        }
-        
-        assistantContent.oninput = updateCombinedOutput;
-
-        toggleAssistantBtn.onclick = () => {
-            const version = getSelectedVersion();
-            if (version) {
-                version.isAssistantVisible = !version.isAssistantVisible;
-                assistantWrapper.classList.toggle('hidden', !version.isAssistantVisible);
-                toggleAssistantBtn.classList.toggle('rotate-180', !version.isAssistantVisible);
-                saveData();
-            }
-        };
-
-        const handleSave = () => {
-            const prompt = getSelectedPrompt();
-            if(!prompt) return;
-            
-            prompt.updatedAt = Date.now();
-
-            if (prompt.type === 'simple') {
-                const version = getSelectedVersion();
-                if (version) {
-                    version.content = promptEditor.root.innerHTML;
-                    version.assistantContent = assistantContent.value;
-                    version.updatedAt = prompt.updatedAt;
-                }
-            } else if (prompt.type === 'chain') {
-                prompt.steps.forEach(step => {
-                    const quillInstance = chainQuillInstances.get(step.id);
-                    if (quillInstance) {
-                        step.content = quillInstance.root.innerHTML;
-                    }
-                });
-            }
-            
-            if (saveData()) {
-                showToast("Zapisano pomyślnie!");
-                renderAll();
-            }
-        };
-
-        const handleCopy = () => {
-            const previewEl = editorView.querySelector('#combined-output-preview');
-            const textToCopy = previewEl ? previewEl.dataset.plainText : '';
-            if (!textToCopy) {
-                showToast("Brak treści do skopiowania", "error");
-                return;
-            }
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                showToast("Skopiowano do schowka!");
-            }).catch(err => { console.error('Could not copy text: ', err); showToast("Błąd kopiowania", "error"); });
-        };
-        
-        // NOWA FUNKCJA: Obsługa generowania przez API
-        const handleGenerate = async () => {
-            const previewEl = editorView.querySelector('#combined-output-preview');
-            const promptText = previewEl ? previewEl.dataset.plainText : '';
-
-            if (!promptText) {
-                showToast("Prompt jest pusty!", "error");
-                return;
-            }
-
-            aiResponseSpinner.classList.remove('hidden');
-            aiResponseContent.textContent = '';
-            
-            let chatHistory = [{ role: "user", parts: [{ text: promptText }] }];
-            const payload = { contents: chatHistory };
-            const apiKey = ""; // Klucz API zostanie automatycznie wstawiony przez środowisko
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Błąd API: ${response.status} ${response.statusText}`);
-                }
-
-                const result = await response.json();
-                
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    aiResponseContent.innerText = text;
-                } else {
-                    throw new Error("Otrzymano nieprawidłową odpowiedź z API.");
-                }
-            } catch (error) {
-                console.error("Błąd podczas wywołania API Gemini:", error);
-                aiResponseContent.textContent = `Wystąpił błąd: ${error.message}`;
-                showToast("Błąd generowania", "error");
-            } finally {
-                aiResponseSpinner.classList.add('hidden');
-            }
-        };
-
-        fabSave.onclick = handleSave;
-        fabCopy.onclick = handleCopy;
-        fabGenerate.onclick = handleGenerate;
-        
-        exportBtn.onclick = () => { const dataStr = JSON.stringify(state, null, 2); const dataBlob = new Blob([dataStr], {type: 'application/json'}); const url = URL.createObjectURL(dataBlob); const link = document.createElement('a'); link.href = url; link.download = `prompt-manager-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); };
-        importBtn.onclick = () => importFile.click();
-        importFile.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const importedState = JSON.parse(event.target.result);
-                    if (importedState && Array.isArray(importedState.projects)) {
-                        showConfirmation('Importować dane?', 'Spowoduje to nadpisanie wszystkich obecnych projektów i promptów. Kontynuować?', () => {
-                            state = importedState;
-                            if (!state.snippets) state.snippets = [];
-                            state.selectedProjectId = null; state.selectedPromptId = null; state.selectedVersionId = null;
-                            saveData(); renderAll(); showToast('Dane zaimportowano!');
-                        }, 'Importuj');
-                    } else { throw new Error('Invalid file format'); }
-                } catch (err) { console.error('Error importing file:', err); showToast('Błąd podczas importu pliku.', 'error'); } 
-                finally { importFile.value = ''; }
-            };
-            reader.readAsText(file);
-        };
-        
-        const showConfirmation = (title, text, callback, confirmText = 'Usuń') => { 
-            modalTitle.textContent = title; 
-            modalText.textContent = text; 
-            modalConfirm.textContent = confirmText;
-            confirmationCallback = callback; 
-            confirmationModal.classList.remove('hidden'); 
-        };
-        modalConfirm.onclick = () => { if (confirmationCallback) { confirmationCallback(); } confirmationModal.classList.add('hidden'); confirmationCallback = null; };
-        modalCancel.onclick = () => { confirmationModal.classList.add('hidden'); confirmationCallback = null; };
-        
+        // --- 11. DRAG & DROP LOGIC / LOGIKA PRZECIĄGNIJ I UPUŚĆ ---
         let draggedItem = null;
         let placeholder = null;
 
@@ -1655,7 +1605,7 @@
         const handleDragStart = (e) => {
             draggedItem = e.target;
             setTimeout(() => {
-                draggedItem.classList.add('dragging');
+                if(draggedItem) draggedItem.classList.add('dragging');
             }, 0);
         };
 
@@ -1673,10 +1623,19 @@
         const handleDragOver = (e) => {
             e.preventDefault();
             const targetList = e.target.closest('ul, #favorites-container');
-            if (!targetList) return;
+            if (!targetList || !draggedItem) return;
             
+            const draggedType = draggedItem.dataset.type;
+            const targetType = targetList.id.split('-')[0];
+            const isFavoritesDrag = draggedType === 'favorite' && targetType === 'favorites';
+            const isListDrag = ['project', 'prompt', 'version'].includes(draggedType) && targetType.startsWith(draggedType);
+            
+            if (!isFavoritesDrag && !isListDrag) {
+                return;
+            }
+
             const target = e.target.closest('li, div[data-prompt-id]');
-            if (target && draggedItem && target !== draggedItem) {
+            if (target && target !== draggedItem) {
                 if (!placeholder) {
                     placeholder = createDragPlaceholder();
                 }
@@ -1699,16 +1658,19 @@
             }
 
             const targetList = placeholder.parentNode;
-            const type = draggedItem.dataset.type || 'favorite';
+            const type = draggedItem.dataset.type;
             
             targetList.insertBefore(draggedItem, placeholder);
             
-            const children = Array.from(targetList.children).filter(child => child !== placeholder);
+            const children = Array.from(targetList.children).filter(child => child !== placeholder && child.dataset.type === type);
             let listToUpdate;
 
             if (type === 'project') listToUpdate = state.projects;
             else if (type === 'prompt') listToUpdate = getSelectedProject()?.prompts;
-            else if (type === 'version') listToUpdate = getSelectedPrompt()?.versions;
+            else if (type === 'version') {
+                const prompt = getSelectedPrompt();
+                listToUpdate = prompt?.type === 'chain' ? prompt.steps : prompt.versions;
+            }
             else if (type === 'favorite') {
                 const allFavorites = [];
                 state.projects.forEach(p => p.prompts.forEach(pr => {
@@ -1734,36 +1696,148 @@
             handleDragEnd();
             if (type === 'favorite') renderFavoritesBar();
         };
-
-        [projectsList, promptsList, versionsList, favoritesContainer].forEach(list => {
-             list.addEventListener('dragstart', handleDragStart);
-             list.addEventListener('dragend', handleDragEnd);
-             list.addEventListener('dragover', handleDragOver);
-             list.addEventListener('drop', handleDrop);
-        });
-
-        projectSearch.oninput = renderProjects;
-        promptSearch.oninput = renderPrompts;
-        versionSearch.oninput = renderVersions;
-
-        manageSnippetsBtn.onclick = () => { resetSnippetForm(); renderSnippetsInModal(); snippetModal.classList.remove('hidden'); };
-        closeSnippetModalBtn.onclick = () => snippetModal.classList.add('hidden');
-        saveSnippetBtn.onclick = handleSaveSnippet;
-        clearSnippetFormBtn.onclick = resetSnippetForm;
-        snippetsListModal.addEventListener('click', (e) => { if (e.target.closest('.edit-snippet-btn')) { handleEditSnippet(e.target.closest('.edit-snippet-btn').dataset.id); } if (e.target.closest('.delete-snippet-btn')) { handleDeleteSnippet(e.target.closest('.delete-snippet-btn').dataset.id); } });
-        insertSnippetBtn.onclick = (e) => {
-            const bounds = e.target.getBoundingClientRect();
-            showSnippetDropdown(bounds);
+        
+        // --- 12. EVENT LISTENERS (Buttons, Inputs, etc.) / NASŁUCHIWANIE ZDARZEŃ (Przyciski, Pola, itp.) ---
+        const setupEditorListeners = (editor) => {
+            editor.on('text-change', (delta, oldDelta, source) => {
+                if (source === 'user') {
+                    debouncedAutoSave();
+                    updateCombinedOutput();
+                    renderVariableInputs();
+                    
+                    const range = editor.getSelection();
+                    if (range) {
+                        const textBeforeCursor = editor.getText(0, range.index);
+                        const lastHashIndex = textBeforeCursor.lastIndexOf('#');
+                        if (lastHashIndex !== -1 && !textBeforeCursor.substring(lastHashIndex + 1).includes(' ')) {
+                            const filterText = textBeforeCursor.substring(lastHashIndex + 1);
+                            const editorBounds = editor.container.getBoundingClientRect();
+                            const rangeBounds = editor.getBounds(lastHashIndex);
+                            const finalBounds = {
+                                left: editorBounds.left + rangeBounds.left,
+                                bottom: editorBounds.top + rangeBounds.bottom,
+                            };
+                            showSnippetDropdown(finalBounds, editor, filterText);
+                        } else {
+                           snippetDropdown.classList.add('hidden');
+                        }
+                    }
+                }
+            });
+        };
+        setupEditorListeners(promptEditor);
+        
+        editorLockCheckbox.onchange = () => {
+            setEditorLock(editorLockCheckbox.checked);
         };
 
+        function updateCombinedOutput() {
+            const prompt = getSelectedPrompt();
+            if (!prompt) return;
+
+            combinedOutputPreview.innerHTML = '';
+            
+            const variableValues = {};
+            variablesInputs.querySelectorAll('input[data-variable-name]').forEach(input => {
+                variableValues[input.dataset.variableName] = input.value;
+            });
+
+            let allFragmentsPlainText = [];
+            if (prompt.type === 'simple') {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = promptEditor.root.innerHTML;
+                allFragmentsPlainText.push(tempDiv.innerText);
+            } else if (prompt.type === 'chain') {
+                allFragmentsPlainText = prompt.steps.map(step => {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = step.content;
+                    return tempDiv.innerText;
+                });
+            }
+            if (assistantContent.value.trim()){
+                 allFragmentsPlainText.push(assistantContent.value.trim());
+            }
+
+            let processedText = allFragmentsPlainText.map(fragment => {
+                let text = replaceSnippets(fragment);
+                text = replaceVariables(text, variableValues);
+                return text;
+            }).join('\n\n').trim();
+
+            combinedOutputPreview.innerText = processedText;
+            combinedOutputPreview.dataset.plainText = processedText;
+        }
+        
+        assistantContent.oninput = () => {
+            updateCombinedOutput();
+            debouncedAutoSave();
+        };
+
+        toggleAssistantBtn.onclick = () => {
+            const version = getSelectedVersion();
+            if (version) {
+                version.isAssistantVisible = !version.isAssistantVisible;
+                assistantWrapper.classList.toggle('hidden', !version.isAssistantVisible);
+                toggleAssistantBtn.classList.toggle('rotate-180', version.isAssistantVisible);
+                saveData();
+            }
+        };
+
+        const handleCopy = () => {
+            const textToCopy = combinedOutputPreview.dataset.plainText || '';
+            if (!textToCopy) {
+                showToast("Brak treści do skopiowania", "error");
+                return;
+            }
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showToast("Skopiowano do schowka!");
+            }).catch(err => { console.error('Could not copy text: ', err); showToast("Błąd kopiowania", "error"); });
+        };
+        
+        fabCopy.onclick = handleCopy;
+        
+        exportBtn.onclick = () => { const dataStr = JSON.stringify(state, null, 2); const dataBlob = new Blob([dataStr], {type: 'application/json'}); const url = URL.createObjectURL(dataBlob); const link = document.createElement('a'); link.href = url; link.download = `prompt-manager-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); };
+        importBtn.onclick = () => importFile.click();
+        importFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedState = JSON.parse(event.target.result);
+                    if (importedState && Array.isArray(importedState.projects)) {
+                        showConfirmation('Importować dane?', 'Spowoduje to nadpisanie wszystkich obecnych projektów i promptów. Kontynuować?', () => {
+                            state = { projects: [], snippets: [], selectedProjectId: null, selectedPromptId: null, selectedVersionId: null };
+                            loadData();
+                            state = importedState;
+                            saveData(); renderAll(); showToast('Dane zaimportowano!');
+                        }, 'Importuj');
+                    } else { throw new Error('Invalid file format'); }
+                } catch (err) { console.error('Error importing file:', err); showToast('Błąd podczas importu pliku.', 'error'); } 
+                finally { importFile.value = ''; }
+            };
+            reader.readAsText(file);
+        };
+        
+        // --- 13. MODAL & OVERLAY LOGIC / LOGIKA OKIEN MODALNYCH I NAKŁADEK ---
+        const showConfirmation = (title, text, callback, confirmText = 'Usuń') => { 
+            modalTitle.textContent = title; 
+            modalText.textContent = text; 
+            modalConfirm.textContent = confirmText;
+            confirmationCallback = callback; 
+            confirmationModal.classList.remove('hidden'); 
+        };
+        modalConfirm.onclick = () => { if (confirmationCallback) { confirmationCallback(); } confirmationModal.classList.add('hidden'); confirmationCallback = null; };
+        modalCancel.onclick = () => { confirmationModal.classList.add('hidden'); confirmationCallback = null; };
+        
         const handleExitFullscreen = () => {
             const overlay = document.getElementById('fullscreen-overlay');
-            if (overlay) {
-                promptContentContainer.querySelector('.overflow-y-auto').style.overflow = '';
-                originalEditorParent.appendChild(promptContentContainer);
-                overlay.remove();
-                document.body.style.overflow = '';
-            }
+            if (!overlay) return;
+            rightPanel.appendChild(editorView);
+            overlay.remove();
+            document.body.style.overflow = '';
+            toggleFullscreenBtn.classList.remove('hidden');
+            renderEditor();
         };
 
         toggleFullscreenBtn.onclick = () => {
@@ -1785,38 +1859,70 @@
             bar.appendChild(closeBtn);
             
             windowDiv.appendChild(bar);
-            windowDiv.appendChild(promptContentContainer);
+            windowDiv.appendChild(editorView);
             overlay.appendChild(windowDiv);
             document.body.appendChild(overlay);
-            promptContentContainer.querySelector('.overflow-y-auto').style.overflow = 'auto';
             document.body.style.overflow = 'hidden';
+            toggleFullscreenBtn.classList.add('hidden');
         };
 
+        // --- 14. TEMPLATE LIBRARY LOGIC / LOGIKA BIBLIOTEKI SZABLONÓW ---
         const templateLibrary = [ { id: 'tpl_email_marketing', name: 'Email Marketingowy - Zimny Mailing', description: 'Szablon do tworzenia spersonalizowanych, zimnych maili sprzedażowych, które skutecznie przyciągają uwagę potencjalnych klientów.', content: '<p>Cześć [imię_odbiorcy],</p><p>Nazywam się [twoje_imię] i pracuję w [twoja_firma]. Zauważyłem, że [obserwacja_o_firmie_odbiorcy].</p><p>W [twoja_firma] pomagamy firmom takim jak Twoja w [rozwiązanie_problemu]. Pomyślałem, że może to być dla Ciebie interesujące, ponieważ [korzyść_dla_odbiorcy].</p><p>Czy byłbyś otwarty na krótką, 15-minutową rozmowę w przyszłym tygodniu, aby omówić, jak możemy pomóc [nazwa_firmy_odbiorcy]?</p><p>Pozdrawiam,<br>[twoje_imię]</p>' }, { id: 'tpl_blog_post', name: 'Struktura Wpisu na Bloga', description: 'Kompletny szablon do tworzenia angażujących i dobrze zorganizowanych artykułów na bloga, zoptymalizowanych pod SEO.', content: '<h1>[Tytuł Artykułu]</h1><p><strong>Wstęp:</strong> [Krótkie wprowadzenie, które przyciąga uwagę i przedstawia problem/temat]</p><h2>[Nagłówek H2 - Pierwszy Punkt]</h2><p>[Rozwinięcie pierwszego punktu, dostarczenie wartościowych informacji]</p><h2>[Nagłówek H2 - Drugi Punkt]</h2><p>[Rozwinięcie drugiego punktu, przykłady, dane]</p><h2>[Nagłówek H2 - Trzeci Punkt]</h2><p>[Rozwinięcie trzeciego punktu, analiza, case study]</p><p><strong>Podsumowanie:</strong> [Krótkie podsumowanie kluczowych wniosków i wezwanie do działania (CTA), np. zostawienie komentarza, zapis na newsletter]</p>' }, { id: 'tpl_product_description', name: 'Opis Produktu e-Commerce', description: 'Szablon skoncentrowany na korzyściach, który pomaga tworzyć przekonujące opisy produktów do sklepów internetowych.', content: '<p><strong>Nazwa Produktu:</strong> [Nazwa Produktu]</p><p><strong>Krótki opis (hook):</strong> [Jedno zdanie, które idealnie opisuje produkt i jego główną zaletę]</p><p><strong>Dla kogo jest ten produkt?</strong><br>Idealny dla [grupa_docelowa], którzy borykają się z [problem_klienta].</p><p><strong>Co zyskujesz?</strong></p><ul><li><strong>[Korzyść 1]:</strong> [Opis, jak ta korzyść ułatwia życie klienta]</li><li><strong>[Korzyść 2]:</strong> [Opis, jak ta korzyść oszczędza czas/pieniądze]</li><li><strong>[Korzyść 3]:</strong> [Opis, jak ta korzyść poprawia jakość/wyniki]</li></ul><p><strong>Specyfikacja:</strong></p><ul><li>Materiał: [Materiał]</li><li>Wymiary: [Wymiary]</li><li>Kolor: [Kolor]</li></ul>' } ];
         const renderTemplateLibrary = () => { templateList.innerHTML = ''; templateLibrary.forEach(template => { const div = document.createElement('div'); div.className = 'p-4 border rounded-lg dark:border-slate-700 flex flex-col md:flex-row items-start gap-4'; div.innerHTML = `<div class="flex-grow"><h3 class="font-semibold text-lg">${template.name}</h3><p class="text-sm text-slate-500 mt-1">${template.description}</p></div><button data-id="${template.id}" class="import-template-btn mt-2 md:mt-0 flex-shrink-0 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Importuj</button>`; templateList.appendChild(div); }); };
-        templateList.addEventListener('click', (e) => { if (e.target.classList.contains('import-template-btn')) { const templateId = e.target.dataset.id; const template = templateLibrary.find(t => t.id === templateId); if (template) { const newProjectName = prompt("Podaj nazwę dla nowego projektu, do którego zaimportowany zostanie szablon:", `Projekt z szablonu: ${template.name}`); if (newProjectName) { const newProject = { id: generateId(), name: newProjectName.trim(), prompts: [] }; const now = Date.now(); const newPrompt = { id: generateId(), type: 'simple', name: template.name, versions: [], isFavorite: false, createdAt: now, updatedAt: now }; const newVersion = { id: generateId(), name: 'Wersja 1', content: template.content, status: 'experimental', createdAt: now, updatedAt: now, isAssistantVisible: false, assistantContent: '' }; newPrompt.versions.push(newVersion); newProject.prompts.push(newPrompt); state.projects.unshift(newProject); saveData(); showToast("Szablon zaimportowany pomyślnie!"); templateLibraryModal.classList.add('hidden'); selectProject(newProject.id); } } } });
+        templateList.addEventListener('click', (e) => { if (e.target.classList.contains('import-template-btn')) { const templateId = e.target.dataset.id; const template = templateLibrary.find(t => t.id === templateId); if (template) { const newProjectName = prompt("Podaj nazwę dla nowego projektu, do którego zaimportowany zostanie szablon:", `Projekt z szablonu: ${template.name}`); if (newProjectName) { const newProject = { id: generateId(), name: newProjectName.trim(), prompts: [] }; const now = Date.now(); const newPrompt = { id: generateId(), type: 'simple', name: template.name, versions: [], isFavorite: false, createdAt: now, updatedAt: now }; const newVersion = { id: generateId(), name: 'Wersja 1', content: template.content, status: 'experimental', createdAt: now, updatedAt: now, isAssistantVisible: true, assistantContent: '' }; newPrompt.versions.push(newVersion); newProject.prompts.push(newPrompt); state.projects.unshift(newProject); saveData(); showToast("Szablon zaimportowany pomyślnie!"); templateLibraryModal.classList.add('hidden'); selectProject(newProject.id); } } } });
         templateLibraryBtn.onclick = () => { renderTemplateLibrary(); templateLibraryModal.classList.remove('hidden'); };
         closeTemplateLibraryModalBtn.onclick = () => templateLibraryModal.classList.add('hidden');
 
+        // --- 15. GLOBAL LISTENERS (Tooltip, Resize, etc.) / GLOBALNE NASŁUCHIWANIE ZDARZEŃ ---
         document.body.addEventListener('mouseover', e => { const target = e.target.closest('[data-tooltip]'); if (target) { globalTooltip.textContent = target.dataset.tooltip; globalTooltip.classList.remove('hidden'); const targetRect = target.getBoundingClientRect(); const top = targetRect.top - globalTooltip.offsetHeight - 5; const left = targetRect.left + (targetRect.width / 2) - (globalTooltip.offsetWidth / 2); globalTooltip.style.left = `${left}px`; globalTooltip.style.top = `${top < 0 ? targetRect.bottom + 5 : top}px`; globalTooltip.style.opacity = 1; } });
-        document.body.addEventListener('mouseout', e => { const target = e.target.closest('[data-tooltip]'); if (target) { globalTooltip.style.opacity = 0; globalTooltip.classList.add('hidden'); } });
+        document.body.addEventListener('mouseout', e => { const target = e.target.closest('[data-tooltip]'); if (target) { globalTooltip.style.opacity = 0; setTimeout(() => globalTooltip.classList.add('hidden'), 200); } });
         document.addEventListener('click', (e) => { if (!snippetDropdown.contains(e.target) && !e.target.closest('#insert-snippet-btn')) { snippetDropdown.classList.add('hidden'); } if (!colorOptionsContainer.contains(e.target) && !e.target.closest('#color-palette-btn')) { colorOptionsContainer.style.display = 'none'; } });
         
-        window.addEventListener('scroll', () => snippetDropdown.classList.add('hidden'), true);
         window.addEventListener('resize', () => { snippetDropdown.classList.add('hidden'); updateSidebarTop(); updateFavoritesScrolling(); });
         
         favLeftBtn.onclick = () => { favoritesContainer.scrollBy({ left: -favoritesContainer.clientWidth * 0.8, behavior: 'smooth' }); };
         favRightBtn.onclick = () => { favoritesContainer.scrollBy({ left: favoritesContainer.clientWidth * 0.8, behavior: 'smooth' }); };
         favoritesContainer.addEventListener('scroll', updateFavoritesScrolling);
 
-        // --- THEME & PERSONALIZATION ---
+        [projectsList, promptsList, versionsList, favoritesContainer].forEach(list => {
+             list.addEventListener('dragstart', handleDragStart);
+             list.addEventListener('dragend', handleDragEnd);
+             list.addEventListener('dragover', handleDragOver);
+             list.addEventListener('drop', handleDrop);
+        });
+
+        projectSearch.oninput = renderProjects;
+        promptSearch.oninput = renderPrompts;
+        versionSearch.oninput = renderVersions;
+
+        manageSnippetsBtn.onclick = () => { resetSnippetForm(); renderSnippetsInModal(); snippetModal.classList.remove('hidden'); };
+        closeSnippetModalBtn.onclick = () => snippetModal.classList.add('hidden');
+        saveSnippetBtn.onclick = handleSaveSnippet;
+        clearSnippetFormBtn.onclick = resetSnippetForm;
+        snippetsListModal.addEventListener('click', (e) => { if (e.target.closest('.edit-snippet-btn')) { handleEditSnippet(e.target.closest('.edit-snippet-btn').dataset.id); } if (e.target.closest('.delete-snippet-btn')) { handleDeleteSnippet(e.target.closest('.delete-snippet-btn').dataset.id); } });
+        insertSnippetBtn.onclick = (e) => {
+            const bounds = e.target.getBoundingClientRect();
+            showSnippetDropdown(bounds, promptEditor);
+        };
+        
+        // --- 16. THEME & PERSONALIZATION / MOTYWY I PERSONALIZACJA ---
         const applyTheme = (theme) => { if (theme === 'dark') { document.documentElement.classList.add('dark'); themeIconLight.classList.add('hidden'); themeIconDark.classList.remove('hidden'); } else { document.documentElement.classList.remove('dark'); themeIconLight.classList.remove('hidden'); themeIconDark.classList.add('hidden'); } };
         themeToggleBtn.onclick = () => { const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark'; localStorage.setItem('theme', newTheme); applyTheme(newTheme); };
         
-        const applyEditorFontSize = (size) => { document.documentElement.style.setProperty('--editor-font-size', `${size}rem`); };
-        const changeEditorFontSize = (delta) => { let size = parseFloat(localStorage.getItem('editorFontSize') || '1'); size = Math.max(0.7, Math.min(1.5, size + delta)); localStorage.setItem('editorFontSize', size); applyEditorFontSize(size); };
-        fontSizeUpBtn.onclick = () => changeEditorFontSize(0.05);
-        fontSizeDownBtn.onclick = () => changeEditorFontSize(-0.05);
+        const applyEditorFontSize = (size) => { document.documentElement.style.setProperty('--editor-font-size', `${size}rem`); fontSizeDisplay.textContent = parseFloat(size).toFixed(1); };
+        const changeEditorFontSize = (delta) => { let size = parseFloat(localStorage.getItem('editorFontSize') || '1'); size = Math.max(0.7, Math.min(2.0, size + delta)); localStorage.setItem('editorFontSize', size); applyEditorFontSize(size); };
+        fontSizeUpBtn.onclick = () => changeEditorFontSize(0.1);
+        fontSizeDownBtn.onclick = () => changeEditorFontSize(-0.1);
+
+        const applyLineHeight = (value) => { document.documentElement.style.setProperty('--editor-line-height', value); lineHeightDisplay.textContent = parseFloat(value).toFixed(1); };
+        const changeLineHeight = (delta) => { let value = parseFloat(localStorage.getItem('editorLineHeight') || '1.5'); value = Math.max(1.0, Math.min(3.0, value + delta)); localStorage.setItem('editorLineHeight', value.toFixed(1)); applyLineHeight(value.toFixed(1)); };
+        lineHeightUpBtn.onclick = () => changeLineHeight(0.1);
+        lineHeightDownBtn.onclick = () => changeLineHeight(-0.1);
+
+        const applyParagraphSpacing = (value) => { document.documentElement.style.setProperty('--editor-paragraph-spacing', `${value}rem`); paragraphSpacingDisplay.textContent = parseFloat(value).toFixed(1); };
+        const changeParagraphSpacing = (delta) => { let value = parseFloat(localStorage.getItem('editorParagraphSpacing') || '1.0'); value = Math.max(0, Math.min(3.0, value + delta)); localStorage.setItem('editorParagraphSpacing', value.toFixed(1)); applyParagraphSpacing(value.toFixed(1)); };
+        paragraphSpacingUpBtn.onclick = () => changeParagraphSpacing(0.1);
+        paragraphSpacingDownBtn.onclick = () => changeParagraphSpacing(-0.1);
         
         const applyFontFamily = (fontFamily) => { document.documentElement.style.setProperty('--editor-font-family', fontFamily); };
         fontFamilySelect.onchange = () => { const newFont = fontFamilySelect.value; localStorage.setItem('fontFamily', newFont); applyFontFamily(newFont); };
@@ -1855,13 +1961,21 @@
             swatch.onclick = () => applyAccentColor(colorName);
             colorOptionsContainer.appendChild(swatch);
         });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+                e.preventDefault();
+                handleCopy();
+            }
+        });
 
-        // --- INITIALIZATION --- 
+        // --- 17. INITIALIZATION / INICJALIZACJA ---
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) { applyTheme(savedTheme); } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) { applyTheme('dark'); } else { applyTheme('light'); }
         
-        const savedEditorFontSize = localStorage.getItem('editorFontSize');
-        if (savedEditorFontSize) { applyEditorFontSize(savedEditorFontSize); }
+        applyEditorFontSize(localStorage.getItem('editorFontSize') || '1.0');
+        applyLineHeight(localStorage.getItem('editorLineHeight') || '1.5');
+        applyParagraphSpacing(localStorage.getItem('editorParagraphSpacing') || '1.0');
 
         const savedFontFamily = localStorage.getItem('fontFamily');
         if (savedFontFamily) { fontFamilySelect.value = savedFontFamily; applyFontFamily(savedFontFamily); }
