@@ -1,98 +1,141 @@
 <!DOCTYPE html>
 <html lang="pl" class="">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menedżer Promptów</title>
-    
+    <title>Menedżer Promptów v5</title>
+
     <!-- Zasoby ładowane z sieci CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500&family=Roboto+Mono:wght@400;500&family=Source+Code+Pro:wght@400;500&family=Hanken+Grotesk:wght@400;500;600&family=Merriweather:wght@400;700&family=Noto+Serif:wght@400;700&display=swap" rel="stylesheet">
+
     <!-- Quill Rich Text Editor -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-    
+
     <style>
-        /* Initial font size is set here and can be overridden by JS */
-        html {
-            font-size: 85%;
+        :root {
+            --sidebar-top: 81px; /* Domyślna wartość, aktualizowana przez JS */
+            --editor-font-family: 'Inter', sans-serif;
+            --editor-font-size: 1rem; /* Domyślna wielkość czcionki w edytorze */
+            
+            --accent-50: 238, 242, 255;   /* indigo-50 */
+            --accent-100: 224, 231, 255;  /* indigo-100 */
+            --accent-200: 199, 210, 254;  /* indigo-200 */
+            --accent-500: 99, 102, 241;   /* indigo-500 */
+            --accent-600: 79, 70, 229;    /* indigo-600 */
+            --accent-800: 55, 48, 163;    /* indigo-800 */
+            --accent-950: 30, 27, 75;     /* indigo-950 */
         }
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Custom scrollbar for better aesthetics */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #94a3b8;
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-        /* Style for draggable items */
-        .dragging {
-            opacity: 0.5;
-            background: #c7d2fe;
-        }
-        .drag-over {
-            border-top: 2px solid #4f46e5;
-        }
-        /* Snippet dropdown */
-        .snippet-dropdown {
-            position: absolute;
-            background-color: white;
-            border: 1px solid #e2e8f0;
+
+        html { font-size: 85%; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        .dragging { opacity: 0.5; background: #c7d2fe; }
+        .drag-over-placeholder {
+            border: 2px dashed rgba(var(--accent-500), 0.6);
+            background-color: rgba(var(--accent-100), 0.5);
             border-radius: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            z-index: 20;
-            max-height: 200px;
-            overflow-y: auto;
+            margin: 0.25rem 0;
+            height: 40px;
         }
-        .snippet-item {
-            padding: 0.5rem 1rem;
-            cursor: pointer;
+
+        .snippet-dropdown {
+            position: fixed;
+            background-color: white; border: 1px solid #e2e8f0;
+            border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            z-index: 1000; max-height: 200px; overflow-y: auto; max-width: 20rem;
         }
-        .snippet-item:hover {
-            background-color: #f1f5f9;
+        .snippet-item { padding: 0.5rem 1rem; cursor: pointer; }
+        .snippet-item:hover { background-color: #f1f5f9; }
+
+        #prompt-content-container .ql-editor,
+        #snippet-content-editor .ql-editor {
+            font-family: var(--editor-font-family);
+            font-size: var(--editor-font-size);
         }
-        /* Quill Editor Styling */
-        .ql-container.ql-snow {
-            border-radius: 0 0 0.5rem 0.5rem;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
+
+        #prompt-editor-quill-container .ql-toolbar {
+            flex-shrink: 0;
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+            border-bottom: 0 !important;
         }
-        .ql-toolbar.ql-snow {
-            border-radius: 0.5rem 0.5rem 0 0;
-            border-bottom: 0;
-        }
-        .editor-container {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-        .ql-editor {
+        #prompt-editor-quill-container .ql-container {
             flex-grow: 1;
             overflow-y: auto;
-            width: 100%;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            resize: vertical;
         }
-        .ql-editor p {
-            margin-bottom: 1rem;
+        #prompt-editor-quill-container .ql-container.ql-snow {
+            border-top: 1px solid #e2e8f0;
         }
-        .ql-editor li {
-            margin-bottom: 0.5rem;
+        .dark #prompt-editor-quill-container .ql-container.ql-snow {
+            border-top-color: #475569;
         }
+        #prompt-editor-quill-container .ql-editor {
+            min-height: 150px;
+        }
+
+        .ql-editor.ql-disabled { background-color: #f8fafc; }
+        .dark .ql-editor.ql-disabled { background-color: #1e293b; }
+
+        #fullscreen-overlay {
+            position: fixed; inset: 0; width: 100vw; height: 100vh;
+            z-index: 1001; background-color: rgba(15,23,42,0.6);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .dark #fullscreen-overlay { background-color: rgba(2,6,23,0.65); }
+        #fullscreen-window {
+            width: 90vw; height: 90vh;
+            background-color: var(--bg-color, white);
+            border-radius: 0.75rem;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .dark #fullscreen-window { --bg-color: #1e293b; }
+        #fullscreen-bar {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+        .dark #fullscreen-bar { border-color: #334155; }
+        #fullscreen-window #prompt-content-container {
+            flex-grow: 1;
+            padding: 1rem;
+        }
+        #fullscreen-window .ql-container { height: auto !important; flex-grow: 1; }
+
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; cursor: pointer; }
+        .status-dot.experimental { background-color: #3b82f6; }
+        .status-dot.production { background-color: #22c55e; }
+        .version-date { font-size: 0.8em; color: #64748b; }
+        .dark .version-date { color: #94a3b8; }
         
-        /* Dark Mode Styles */
+        .bg-accent-50 { background-color: rgba(var(--accent-50), 1); }
+        .bg-accent-100 { background-color: rgba(var(--accent-100), 1); }
+        .bg-accent-500 { background-color: rgba(var(--accent-500), 1); }
+        .bg-accent-600 { background-color: rgba(var(--accent-600), 1); }
+        .text-accent-800 { color: rgba(var(--accent-800), 1); }
+        .border-accent-500 { border-color: rgba(var(--accent-500), 1); }
+        .dark .bg-accent-950-50 { background-color: rgba(var(--accent-950), 0.5); }
+        .dark .text-accent-800 { color: rgba(var(--accent-100), 1); }
+        .hover\:bg-accent-600:hover { background-color: rgba(var(--accent-600), 1); }
+        .disabled\:bg-slate-300:disabled { background-color: #d1d5db; }
+        .dark .disabled\:bg-slate-300:disabled { background-color: #475569; }
+
+        /* Dark Mode */
         .dark .bg-slate-100 { background-color: #0f172a; }
         .dark .text-slate-800 { color: #e2e8f0; }
         .dark .bg-white { background-color: #1e293b; }
@@ -101,12 +144,9 @@
         .dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0,0,0,0.2); }
         .dark .bg-slate-50 { background-color: #334155; }
         .dark .border-slate-300 { border-color: #475569; }
-        .dark #temp-content { background-color: #334155; border-color: #475569; color: #e2e8f0; }
         .dark .text-slate-600 { color: #94a3b8; }
         .dark .text-slate-500 { color: #94a3b8; }
         .dark .hover\:bg-slate-100:hover { background-color: #334155; }
-        .dark .bg-indigo-100 { background-color: #4338ca; }
-        .dark .text-indigo-800 { color: #e0e7ff; }
         .dark .bg-amber-200 { background-color: #b45309; }
         .dark .text-amber-800 { color: #fef3c7; }
         .dark .hover\:bg-amber-300:hover { background-color: #c2410c; }
@@ -117,8 +157,7 @@
         .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
         .dark .snippet-dropdown { background-color: #1e293b; border-color: #475569; }
         .dark .snippet-item:hover { background-color: #334155; }
-        
-        /* Dark Mode for Quill */
+        .dark .placeholder-icon { color: #475569; }
         .dark .ql-snow .ql-stroke { color: #e2e8f0; }
         .dark .ql-snow .ql-picker-label { color: #e2e8f0; }
         .dark .ql-snow .ql-picker-options { background-color: #334155; border-color: #475569; }
@@ -126,178 +165,203 @@
         .dark .ql-toolbar.ql-snow { border-color: #475569; }
         .dark .ql-container.ql-snow { border-color: #475569; }
         .dark .ql-editor { color: #e2e8f0; }
+        .dark .favorites-fade-left { background: linear-gradient(to right, #1e293b, transparent); }
+        .dark .favorites-fade-right { background: linear-gradient(to left, #1e293b, transparent); }
+        .dark .bg-accent-100 { background-color: rgba(var(--accent-800), 0.5); }
+
+        .favorites-wrapper { position: relative; }
+        .favorites-fade {
+            position: absolute; top: 0; bottom: 0; width: 40px; pointer-events: none; z-index: 1;
+        }
+        .favorites-fade-left { left: 0; background: linear-gradient(to right, #eef2ff, transparent); }
+        .favorites-fade-right { right: 0; background: linear-gradient(to left, #eef2ff, transparent); }
+
+        @media (min-width: 1024px) {
+            #left-sidebar {
+                position: sticky;
+                top: calc(var(--sidebar-top) + 1rem);
+                height: calc(100dvh - var(--sidebar-top) - 2rem);
+            }
+        }
+        .left-stack { height: 100%; display: flex; flex-direction: column; }
+        .fixed-panel { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+        .fixed-panel > ul { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
         
+        #toast-notification {
+            position: fixed; bottom: 1.5rem; left: 50%; display: none;
+            transform: translate(-50%, 200%); transition: transform 0.3s ease-in-out; z-index: 1000;
+        }
+        #toast-notification.show {
+            display: block; transform: translate(-50%, 0);
+        }
+
+        #global-tooltip {
+            position: fixed; background-color: #1e293b; color: white;
+            padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;
+            pointer-events: none; z-index: 2000; opacity: 0; transition: opacity 0.2s;
+        }
+        
+        #color-palette { position: relative; }
+        #color-options {
+            display: none; position: absolute; top: 100%; right: 0;
+            margin-top: 8px; background-color: white; border-radius: 0.5rem;
+            padding: 0.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            z-index: 100;
+        }
+        .dark #color-options { background-color: #1e293b; }
+        .color-swatch {
+            width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .color-swatch.selected { border-color: #64748b; }
+        .dark .color-swatch.selected { border-color: white; }
+
+        .pill-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .pill-switch input { opacity: 0; width: 0; height: 0; }
+        .pill-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .pill-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .pill-slider { background-color: rgba(var(--accent-500), 1); }
+        input:checked + .pill-slider:before { transform: translateX(24px); }
+        .pill-slider svg { position: absolute; top: 50%; transform: translateY(-50%); transition: opacity 0.2s; color: rgba(var(--accent-500), 1); }
+        .pill-slider .lock-open-icon { right: 6px; opacity: 1; }
+        .pill-slider .lock-closed-icon { left: 6px; opacity: 0; color: white; }
+        input:checked + .pill-slider .lock-open-icon { opacity: 0; }
+        input:checked + .pill-slider .lock-closed-icon { opacity: 1; }
+
+        /* NOWA FUNKCJA: Style dla wskaźnika ładowania */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid rgba(var(--accent-500), 1);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
+
 <body class="bg-slate-100 text-slate-800 transition-colors duration-300">
 
-    <div id="app" class="flex flex-col min-h-screen">
+    <div id="app" class="flex flex-col h-screen min-h-0">
         <!-- Header -->
-        <header class="bg-white shadow-md p-4 flex justify-between items-center z-10 sticky top-0">
-            <h1 class="text-2xl font-bold text-slate-700">Menedżer Promptów</h1>
-            <div class="flex items-center space-x-4">
-                <button id="manage-snippets-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Zarządzaj wstawkami</button>
-                <button id="import-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                    Importuj (JSON)
-                </button>
+        <header id="main-header" class="bg-white shadow-md p-4 flex justify-between items-center z-40 sticky top-0">
+            <div class="flex-1"></div>
+            <div class="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
+                <button id="template-library-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex-shrink-0 whitespace-nowrap">Biblioteka Szablonów</button>
+                <button id="manage-snippets-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex-shrink-0 whitespace-nowrap">Zarządzaj wstawkami</button>
+                <button id="import-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex-shrink-0 whitespace-nowrap">Importuj</button>
                 <input type="file" id="import-file" class="hidden" accept=".json">
-                <button id="export-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                    Eksportuj (JSON)
-                </button>
-                <div class="flex items-center space-x-1 rounded-full p-1 bg-slate-100 dark:bg-slate-700">
-                    <button id="font-size-down-btn" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
-                    </button>
-                    <button id="font-size-up-btn" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
-                    </button>
+                <button id="export-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex-shrink-0 whitespace-nowrap">Eksportuj</button>
+                
+                <div class="flex items-center space-x-2 rounded-full p-1 bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+                    <select id="font-family-select" data-tooltip="Zmień czcionkę" class="bg-transparent text-slate-500 text-sm focus:outline-none cursor-pointer border-0">
+                        <option value="'Inter', sans-serif">Inter</option>
+                        <option value="'Lora', serif">Lora</option>
+                        <option value="'Merriweather', serif">Merriweather</option>
+                        <option value="'Noto Serif', serif">Noto Serif</option>
+                        <option value="'Hanken Grotesk', sans-serif">Hanken Grotesk</option>
+                        <option value="'Roboto Mono', monospace">Roboto Mono</option>
+                        <option value="'Source Code Pro', monospace">Source Code Pro</option>
+                    </select>
+                    <button id="font-size-down-btn" data-tooltip="Zmniejsz" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg></button>
+                    <button id="font-size-up-btn" data-tooltip="Zwiększ" class="p-1 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg></button>
                 </div>
-                <button id="theme-toggle-btn" class="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700">
-                    <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                </button>
+                
+                <div id="color-palette" data-tooltip="Zmień kolor akcentu">
+                    <button id="color-palette-btn" class="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                    </button>
+                    <div id="color-options" class="flex gap-2"></div>
+                </div>
+
+                <button id="theme-toggle-btn" data-tooltip="Zmień motyw" class="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0"><svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 0 018 0z"></path></svg><svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg></button>
             </div>
         </header>
         
-        <!-- Favorites Bar -->
-        <div id="favorites-bar" class="bg-white shadow-sm p-2 hidden sticky top-[81px] z-10">
-            <div id="favorites-container" class="flex items-center gap-2 overflow-x-auto custom-scrollbar">
-                <!-- Favorite prompts will be rendered here -->
+        <div id="favorites-bar" class="bg-accent-50 dark:bg-accent-950-50 border-b border-accent-200 dark:border-slate-800 px-4 py-2 hidden fixed inset-x-0 z-20">
+            <div class="favorites-wrapper group relative flex items-center">
+                <button id="fav-left" class="absolute left-1 top-1/2 -translate-y-1/2 z-20 p-1 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 backdrop-blur-sm rounded-full shadow-md text-slate-600 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity hidden"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
+                <div class="favorites-fade favorites-fade-left"></div>
+                <div id="favorites-container" class="flex items-center gap-3 overflow-x-auto custom-scrollbar py-1" style="scroll-behavior: smooth; scrollbar-width: none;"></div>
+                <div class="favorites-fade favorites-fade-right"></div>
+                <button id="fav-right" class="absolute right-1 top-1/2 -translate-y-1/2 z-20 p-1 bg-white/80 dark:bg-slate-700/80 hover:bg-white dark:hover:bg-slate-600 backdrop-blur-sm rounded-full shadow-md text-slate-600 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity hidden"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
             </div>
         </div>
 
-        <!-- Main Content -->
-        <main class="flex-grow flex flex-col lg:flex-row p-4 gap-4">
-            
-            <!-- Left Panel: Projects, Prompts, Versions -->
-            <div class="w-full lg:w-1/3 flex flex-col md:flex-row lg:flex-col gap-4">
-                <!-- Projects Column -->
-                <div class="flex-1 bg-white p-4 rounded-xl shadow-sm flex flex-col">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="text-lg font-semibold">Projekty</h2>
-                        <button id="add-project-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors">+</button>
+        <main class="flex-grow flex flex-col lg:flex-row p-4 gap-4 min-h-0">
+            <div id="left-sidebar" class="w-full lg:w-1/3 flex flex-col md:flex-row lg:flex-col gap-4 transition-all duration-300">
+                <div class="left-stack w-full flex flex-col gap-4">
+                    <div class="fixed-panel bg-white p-4 rounded-xl shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center mb-3"><h2 class="text-lg font-semibold">Projekty</h2><button id="add-project-btn" data-tooltip="Nowy projekt" class="bg-accent-500 hover:bg-accent-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg></button></div>
+                        <input type="text" id="project-search" placeholder="Szukaj projektów..." class="w-full p-2 mb-2 border border-slate-300 rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600">
+                        <ul id="projects-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-1 pr-1"></ul>
                     </div>
-                    <ul id="projects-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-2"></ul>
-                </div>
-
-                <!-- Prompts Column -->
-                <div class="flex-1 bg-white p-4 rounded-xl shadow-sm flex flex-col">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="text-lg font-semibold">Prompty</h2>
-                        <button id="add-prompt-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed">+</button>
+                    <div class="fixed-panel bg-white p-4 rounded-xl shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center mb-3"><h2 class="text-lg font-semibold">Prompty</h2><button id="add-prompt-btn" data-tooltip="Nowy prompt" class="bg-accent-500 hover:bg-accent-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg></button></div>
+                        <input type="text" id="prompt-search" placeholder="Szukaj promptów..." class="w-full p-2 mb-2 border border-slate-300 rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600">
+                        <ul id="prompts-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-1 pr-1"></ul>
                     </div>
-                    <ul id="prompts-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-2"></ul>
-                </div>
-                
-                <!-- Versions Column -->
-                <div class="flex-1 bg-white p-4 rounded-xl shadow-sm flex flex-col">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="text-lg font-semibold">Wersje</h2>
-                        <button id="add-version-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed">+</button>
+                    <div class="fixed-panel bg-white p-4 rounded-xl shadow-sm flex flex-col">
+                        <div class="flex justify-between items-center mb-3"><h2 class="text-lg font-semibold">Wersje</h2><button id="add-version-btn" data-tooltip="Nowa wersja" class="bg-accent-500 hover:bg-accent-600 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg></button></div>
+                        <input type="text" id="version-search" placeholder="Szukaj wersji..." class="w-full p-2 mb-2 border border-slate-300 rounded-lg text-sm dark:bg-slate-700 dark:border-slate-600">
+                        <ul id="versions-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-1 pr-1"></ul>
                     </div>
-                    <ul id="versions-list" class="flex-grow overflow-y-auto custom-scrollbar space-y-2"></ul>
                 </div>
             </div>
 
-            <!-- Right Panel: Editor -->
-            <div class="w-full lg:w-2/3 bg-white p-4 rounded-xl shadow-sm flex flex-col gap-4">
-                <div id="editor-view" class="flex-grow flex flex-col gap-4 hidden">
-                    <!-- Main Prompt Content -->
-                    <div class="flex-grow flex flex-col min-h-[200px]">
-                        <div class="flex justify-between items-center mb-1">
-                            <label for="prompt-content-editor" class="block text-sm font-medium text-slate-600">Treść promptu (zapisywana automatycznie)</label>
-                            <div class="relative">
-                                <button id="insert-snippet-btn" class="text-sm text-indigo-600 hover:text-indigo-800 font-semibold">Wstaw snippet</button>
-                                <div id="snippet-dropdown" class="snippet-dropdown hidden"></div>
-                            </div>
-                        </div>
-                        <div id="prompt-content-editor" class="flex-grow"></div>
-                    </div>
-
-                    <!-- Temporary Content -->
-                    <div>
-                        <label for="temp-content" class="block text-sm font-medium text-slate-600 mb-1">Treść tymczasowa (nie jest zapisywana)</label>
-                        <textarea id="temp-content" rows="3" class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"></textarea>
-                        <div class="flex justify-end mt-2">
-                             <button id="copy-btn-1" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
-                                Kopiuj cały prompt
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Combined Output -->
-                    <div class="flex-grow flex flex-col min-h-[200px]">
-                        <label for="combined-output-preview" class="block text-sm font-medium text-slate-600 mb-1">Końcowy prompt (podgląd)</label>
-                        <div id="combined-output-preview" class="w-full h-full flex-grow p-3 border bg-slate-50 border-slate-300 rounded-lg overflow-y-auto custom-scrollbar"></div>
-                         <div class="flex justify-end mt-2">
-                             <button id="copy-btn-2" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>
-                                Kopiuj cały prompt
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div id="placeholder-view" class="flex-grow flex items-center justify-center text-center text-slate-500">
-                    <div>
-                        <h3 class="text-xl font-semibold">Witaj w Menedżerze Promptów!</h3>
-                        <p class="mt-2">Dodaj swój pierwszy projekt, aby zacząć.</p>
-                    </div>
+            <div id="right-panel" class="w-full lg:w-2/3 bg-white p-4 rounded-xl shadow-sm flex flex-col gap-4 min-h-0 transition-all duration-300">
+                <div id="editor-view" class="flex-grow flex flex-col gap-4 hidden min-h-0"></div>
+                <div id="placeholder-view" class="flex-grow flex flex-col items-center justify-center text-center text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-slate-300 placeholder-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    <h3 class="text-xl font-semibold mt-4">Witaj w Menedżerze Promptów!</h3>
+                    <p class="mt-2 max-w-xs">Dodaj swój pierwszy projekt używając przycisku <span class="inline-flex items-center justify-center bg-accent-500 text-white w-5 h-5 rounded-full font-bold">+</span> w panelu "Projekty", aby zacząć.</p>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Snippets Modal -->
-    <div id="snippet-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-5xl flex flex-col gap-4 max-h-[90vh]">
-            <h2 class="text-xl font-bold">Zarządzaj wstawkami (snippetami)</h2>
-            <div class="flex flex-col md:flex-row gap-4 flex-grow min-h-0">
-                <!-- Form -->
-                <div class="w-full md:w-2/3 flex flex-col gap-4">
-                    <h3 id="snippet-form-title" class="text-lg font-semibold">Nowa wstawka</h3>
-                    <input type="hidden" id="snippet-id-input">
-                    <div>
-                        <label for="snippet-name-input" class="block text-sm font-medium text-slate-600">Nazwa (bez spacji, np. 'formalny_ton')</label>
-                        <input type="text" id="snippet-name-input" class="mt-1 w-full p-2 border border-slate-300 rounded-lg">
-                    </div>
-                    <div class="flex-grow flex flex-col min-h-0">
-                        <label for="snippet-content-editor" class="block text-sm font-medium text-slate-600">Treść wstawki</label>
-                        <div id="snippet-content-editor" class="mt-1 flex-grow"></div>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button id="clear-snippet-form-btn" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-semibold hidden">Wyczyść</button>
-                        <button id="save-snippet-btn" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-semibold">Zapisz</button>
-                    </div>
-                </div>
-                <!-- List -->
-                <div class="w-full md:w-1/3 flex flex-col">
-                    <h3 class="text-lg font-semibold mb-2">Istniejące wstawki</h3>
-                    <ul id="snippets-list-modal" class="flex-grow overflow-y-auto custom-scrollbar border rounded-lg p-2 space-y-2">
-                        <!-- Snippets will be rendered here -->
-                    </ul>
-                </div>
+    <!-- Modals & Notifications -->
+    <div id="template-library-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-4xl flex flex-col gap-4 max-h-[90vh]">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold">Biblioteka Szablonów</h2>
+                <button id="close-template-library-modal-btn" class="text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
             </div>
-             <button id="close-snippet-modal-btn" class="mt-4 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-semibold self-center">Zamknij</button>
+            <p class="text-sm text-slate-600 dark:text-slate-400">Wybierz gotowy szablon, aby szybko rozpocząć pracę nad nowym promptem. Zostanie on zaimportowany jako nowy projekt.</p>
+            <div id="template-list" class="flex-grow overflow-y-auto custom-scrollbar -mx-4 px-4 space-y-4"></div>
         </div>
     </div>
-
-    <!-- Custom Modal for confirmation -->
-    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
-            <h3 id="modal-title" class="text-lg font-bold mb-4">Czy na pewno?</h3>
-            <p id="modal-text" class="text-slate-600 mb-6">Tej operacji nie można cofnąć.</p>
-            <div class="flex justify-end space-x-4">
-                <button id="modal-cancel" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-semibold">Anuluj</button>
-                <button id="modal-confirm" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold">Usuń</button>
-            </div>
-        </div>
+    <div id="snippet-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"><div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-5xl flex flex-col gap-4 max-h-[90vh]"><h2 class="text-xl font-bold">Zarządzaj wstawkami (snippetami)</h2><div class="flex flex-col md:flex-row gap-4 flex-grow min-h-0"><div class="w-full md:w-2/3 flex flex-col gap-4"><h3 id="snippet-form-title" class="text-lg font-semibold">Nowa wstawka</h3><input type="hidden" id="snippet-id-input"><div><label for="snippet-name-input" class="block text-sm font-medium text-slate-600">Nazwa (bez spacji, np. 'formalny_ton')</label><input type="text" id="snippet-name-input" class="mt-1 w-full p-2 border border-slate-300 rounded-lg dark:bg-slate-700 dark:border-slate-600"></div><div class="flex-grow flex flex-col min-h-0"><label for="snippet-content-editor" class="block text-sm font-medium text-slate-600">Treść wstawki</label><div id="snippet-content-editor" class="mt-1 flex-grow"></div></div><div class="flex justify-end gap-2"><button id="clear-snippet-form-btn" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 rounded-lg font-semibold hidden">Wyczyść</button><button id="save-snippet-btn" class="px-4 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-lg font-semibold">Zapisz</button></div></div><div class="w-full md:w-1/3 flex flex-col"><h3 class="text-lg font-semibold mb-2">Istniejące wstawki</h3><ul id="snippets-list-modal" class="flex-grow overflow-y-auto custom-scrollbar border dark:border-slate-600 rounded-lg p-2 space-y-2"></ul></div></div><button id="close-snippet-modal-btn" class="mt-4 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-semibold self-center">Zamknij</button></div></div>
+    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"><div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-sm"><h3 id="modal-title" class="text-lg font-bold mb-4">Czy na pewno?</h3><p id="modal-text" class="text-slate-600 dark:text-slate-300 mb-6">Tej operacji nie można cofnąć.</p><div class="flex justify-end space-x-4"><button id="modal-cancel" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-500 rounded-lg font-semibold">Anuluj</button><button id="modal-confirm" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold">Usuń</button></div></div></div>
+    <div id="snippet-dropdown" class="snippet-dropdown custom-scrollbar hidden"></div>
+    <div id="toast-notification" class="bg-green-500 text-white font-bold py-2 px-6 rounded-full shadow-lg"></div>
+    <div id="global-tooltip" class="hidden"></div>
+    
+    <div id="fab-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 hidden">
+        <button id="fab-generate" data-tooltip="Generuj (Ctrl+Enter)" class="bg-emerald-500 hover:bg-emerald-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L10 12l5.293 5.293a1 1 0 010 1.414L13 21m-1-4v4m-2-2h4" /></svg>
+        </button>
+        <button id="fab-save" data-tooltip="Zapisz zmiany (Ctrl+S)" class="bg-blue-500 hover:bg-blue-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2V4z"/>
+              <path d="M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+              <path d="M8 12a1 1 0 100 2h4a1 1 0 100-2H8z"/>
+            </svg>
+        </button>
+        <button id="fab-copy" data-tooltip="Kopiuj końcowy prompt (Ctrl+C)" class="bg-teal-500 hover:bg-teal-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
     </div>
-
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- STATE MANAGEMENT ---
+        // --- STATE MANAGEMENT --- 
         let state = {
             projects: [],
             snippets: [],
@@ -306,35 +370,125 @@
             selectedVersionId: null,
         };
 
-        // --- DOM ELEMENTS ---
+        // --- DOM ELEMENTS --- 
+        const appContainer = document.getElementById('app');
+        const mainHeader = document.getElementById('main-header');
         const projectsList = document.getElementById('projects-list');
         const promptsList = document.getElementById('prompts-list');
         const versionsList = document.getElementById('versions-list');
         const addProjectBtn = document.getElementById('add-project-btn');
         const addPromptBtn = document.getElementById('add-prompt-btn');
         const addVersionBtn = document.getElementById('add-version-btn');
-        const tempContent = document.getElementById('temp-content');
-        const combinedOutputPreview = document.getElementById('combined-output-preview');
-        const copyBtn1 = document.getElementById('copy-btn-1');
-        const copyBtn2 = document.getElementById('copy-btn-2');
         const editorView = document.getElementById('editor-view');
         const placeholderView = document.getElementById('placeholder-view');
         const importBtn = document.getElementById('import-btn');
         const exportBtn = document.getElementById('export-btn');
         const importFile = document.getElementById('import-file');
+        const leftSidebar = document.getElementById('left-sidebar');
         
-        // Theme Elements
+        const projectSearch = document.getElementById('project-search');
+        const promptSearch = document.getElementById('prompt-search');
+        const versionSearch = document.getElementById('version-search');
+        
+        const fabContainer = document.getElementById('fab-container');
+        const fabSave = document.getElementById('fab-save');
+        const fabCopy = document.getElementById('fab-copy');
+        const fabGenerate = document.getElementById('fab-generate');
+        
+        // --- DYNAMIC EDITOR CONTAINER ---
+        const promptContentContainer = document.createElement('div');
+        promptContentContainer.id = 'prompt-content-container';
+        promptContentContainer.className = 'flex-grow flex flex-col min-h-0';
+        promptContentContainer.innerHTML = `
+            <div class="flex-shrink-0"> <!-- Top non-scrolling part -->
+                <div id="editor-controls" class="flex justify-between items-center mb-2 flex-wrap md:flex-nowrap gap-2">
+                    <div class="flex items-center gap-4">
+                        <label class="block text-sm font-medium text-slate-600">Treść promptu</label>
+                        <div class="flex items-center gap-2" data-tooltip="Wyłącz, aby zapobiec przypadkowym zmianom.">
+                            <span class="text-sm text-slate-500">Edycja</span>
+                            <label class="pill-switch">
+                                <input type="checkbox" id="editor-lock-checkbox">
+                                <span class="pill-slider">
+                                    <svg class="lock-open-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm0 2a3 3 0 013 3v2H7V7a3 3 0 013-3z" /></svg>
+                                    <svg class="lock-closed-icon h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zm-2 7a2 2 0 114 0v2H8V9z" clip-rule="evenodd" /></svg>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button id="change-prompt-type-btn" class="hidden text-sm text-purple-600 hover:text-purple-800 font-semibold">Zmień typ</button>
+                        <button id="insert-snippet-btn" class="text-sm text-accent-600 hover:text-accent-800 font-semibold">Wstaw snippet</button>
+                        <button id="toggle-fullscreen-btn" class="text-sm text-slate-500 hover:text-accent-600 font-semibold">Pełny ekran</button>
+                    </div>
+                </div>
+            </div>
+            <div id="prompt-editor-quill-container" class="flex-grow flex flex-col min-h-0 relative"></div>
+            <div class="flex-shrink-0 mt-4"> <!-- Bottom non-scrolling part -->
+                <div id="variables-container" class="hidden mb-4">
+                    <label class="block text-sm font-medium text-slate-600 mb-2">Zmienne dynamiczne</label>
+                    <div id="variables-inputs" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+                <div id="assistant-container" class="mt-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="assistant-content" class="block text-sm font-medium text-slate-600">Dodatkowe informacje (kontekst)</label>
+                        <button id="toggle-assistant-btn" data-tooltip="Pokaż/ukryj pole na dodatkowe informacje" class="text-slate-400 hover:text-slate-600 transition-transform duration-200">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                        </button>
+                    </div>
+                    <div id="assistant-wrapper" class="hidden">
+                        <textarea id="assistant-content" rows="4" class="w-full p-2 border border-slate-300 rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="Wklej tutaj dodatkowe dane, artykuły, fragmenty kodu itp., które AI ma wykorzystać..."></textarea>
+                    </div>
+                </div>
+                <div class="flex-grow flex flex-col min-h-[150px] border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-sm font-medium text-slate-600">Końcowy prompt (podgląd)</label>
+                    </div>
+                    <div id="combined-output-preview" class="w-full h-full flex-grow mt-2 p-3 border bg-slate-50 border-slate-300 rounded-lg overflow-y-auto custom-scrollbar"></div>
+                </div>
+                <!-- NOWA FUNKCJA: Sekcja odpowiedzi AI -->
+                <div class="flex-grow flex flex-col min-h-[150px] border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-sm font-medium text-slate-600">Odpowiedź AI</label>
+                    </div>
+                    <div id="ai-response-container" class="w-full h-full flex-grow mt-2 p-3 border bg-slate-50 border-slate-300 rounded-lg overflow-y-auto custom-scrollbar whitespace-pre-wrap">
+                        <div id="ai-response-spinner" class="hidden mx-auto my-4 loader"></div>
+                        <div id="ai-response-content"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const toggleFullscreenBtn = promptContentContainer.querySelector('#toggle-fullscreen-btn');
+        const insertSnippetBtn = promptContentContainer.querySelector('#insert-snippet-btn');
+        const combinedOutputPreview = promptContentContainer.querySelector('#combined-output-preview');
+        const editorLockCheckbox = promptContentContainer.querySelector('#editor-lock-checkbox');
+        const changePromptTypeBtn = promptContentContainer.querySelector('#change-prompt-type-btn');
+        const variablesContainer = promptContentContainer.querySelector('#variables-container');
+        const variablesInputs = promptContentContainer.querySelector('#variables-inputs');
+        const assistantContainer = promptContentContainer.querySelector('#assistant-container');
+        const assistantWrapper = promptContentContainer.querySelector('#assistant-wrapper');
+        const toggleAssistantBtn = promptContentContainer.querySelector('#toggle-assistant-btn');
+        const assistantContent = promptContentContainer.querySelector('#assistant-content');
+        const aiResponseSpinner = promptContentContainer.querySelector('#ai-response-spinner');
+        const aiResponseContent = promptContentContainer.querySelector('#ai-response-content');
+        let originalEditorParent = editorView;
+        
+        // Theme Elements 
         const themeToggleBtn = document.getElementById('theme-toggle-btn');
         const themeIconLight = document.getElementById('theme-icon-light');
         const themeIconDark = document.getElementById('theme-icon-dark');
         const fontSizeUpBtn = document.getElementById('font-size-up-btn');
         const fontSizeDownBtn = document.getElementById('font-size-down-btn');
+        const fontFamilySelect = document.getElementById('font-family-select');
+        const colorPaletteBtn = document.getElementById('color-palette-btn');
+        const colorOptionsContainer = document.getElementById('color-options');
         
-        // Favorites Elements
+        // Favorites Elements 
         const favoritesBar = document.getElementById('favorites-bar');
         const favoritesContainer = document.getElementById('favorites-container');
+        const favLeftBtn = document.getElementById('fav-left');
+        const favRightBtn = document.getElementById('fav-right');
         
-        // Snippet Elements
         const manageSnippetsBtn = document.getElementById('manage-snippets-btn');
         const snippetModal = document.getElementById('snippet-modal');
         const closeSnippetModalBtn = document.getElementById('close-snippet-modal-btn');
@@ -344,19 +498,27 @@
         const saveSnippetBtn = document.getElementById('save-snippet-btn');
         const clearSnippetFormBtn = document.getElementById('clear-snippet-form-btn');
         const snippetsListModal = document.getElementById('snippets-list-modal');
-        const insertSnippetBtn = document.getElementById('insert-snippet-btn');
         const snippetDropdown = document.getElementById('snippet-dropdown');
 
-        // Confirmation Modal Elements
+        const templateLibraryBtn = document.getElementById('template-library-btn');
+        const templateLibraryModal = document.getElementById('template-library-modal');
+        const closeTemplateLibraryModalBtn = document.getElementById('close-template-library-modal-btn');
+        const templateList = document.getElementById('template-list');
+
         const confirmationModal = document.getElementById('confirmation-modal');
         const modalTitle = document.getElementById('modal-title');
         const modalText = document.getElementById('modal-text');
         const modalConfirm = document.getElementById('modal-confirm');
         const modalCancel = document.getElementById('modal-cancel');
-
         let confirmationCallback = null;
+
+        const toast = document.getElementById('toast-notification');
+        let toastTimeout;
+
+        const globalTooltip = document.getElementById('global-tooltip');
         
         // --- QUILL EDITOR INSTANCES ---
+        let chainQuillInstances = new Map();
         const quillToolbarOptions = [
             [{ 'header': [1, 2, 3, false] }],
             ['bold', 'italic', 'underline'],
@@ -364,8 +526,11 @@
             ['clean']
         ];
 
-        const promptEditor = new Quill('#prompt-content-editor', {
-            modules: { toolbar: quillToolbarOptions },
+        const promptEditor = new Quill(promptContentContainer.querySelector('#prompt-editor-quill-container'), {
+            modules: { 
+                toolbar: quillToolbarOptions
+            },
+            placeholder: 'Zacznij pisać, wpisz # (snippet) lub [zmienna]...',
             theme: 'snow'
         });
 
@@ -374,31 +539,45 @@
             theme: 'snow'
         });
 
-
-        // --- DATA PERSISTENCE ---
+        // --- DATA PERSISTENCE --- 
         const saveData = () => {
             try {
-                localStorage.setItem('promptManagerData', JSON.stringify(state));
+                localStorage.setItem('promptManagerDataV5', JSON.stringify(state));
+                return true;
             } catch (e) {
                 console.error("Error saving data to localStorage:", e);
-                alert("Nie udało się zapisać danych. Pamięć lokalna może być pełna.");
+                showToast("Błąd zapisu!", "error");
+                return false;
             }
         };
 
         const loadData = () => {
-            const data = localStorage.getItem('promptManagerData');
+            const data = localStorage.getItem('promptManagerDataV5');
             if (data) {
                 try {
                     const parsedData = JSON.parse(data);
                     if (parsedData && Array.isArray(parsedData.projects)) {
                         state = parsedData;
                         if (!state.snippets) state.snippets = [];
-                        // Backward compatibility for isFavorite
                         state.projects.forEach(p => {
                             if (p.prompts) {
                                 p.prompts.forEach(pr => {
-                                    if (pr.isFavorite === undefined) {
-                                        pr.isFavorite = false;
+                                    if (pr.type === undefined) pr.type = 'simple';
+                                    if (pr.isFavorite === undefined) pr.isFavorite = false;
+                                    if (pr.isFavorite && pr.favoriteOrder === undefined) pr.favoriteOrder = Date.now();
+                                    const now = Date.now();
+                                    if (pr.createdAt === undefined) pr.createdAt = now;
+                                    if (pr.updatedAt === undefined) pr.updatedAt = pr.createdAt;
+                                    const sourceArray = pr.type === 'chain' ? pr.steps : pr.versions;
+                                    if(sourceArray) {
+                                        sourceArray.forEach(v => {
+                                            if(v.status === undefined) v.status = 'experimental';
+                                            if(v.createdAt === undefined) v.createdAt = now;
+                                            if(v.updatedAt === undefined) v.updatedAt = v.createdAt;
+                                            if(v.isAssistantVisible === undefined) v.isAssistantVisible = true;
+                                            if(v.assistantContent === undefined) v.assistantContent = "";
+                                            if (pr.type === 'chain' && v.name === undefined) v.name = `Nowy Krok`;
+                                        });
                                     }
                                 });
                             }
@@ -411,42 +590,108 @@
             }
         };
 
-        // --- UTILITY FUNCTIONS ---
+        // --- UTILITY FUNCTIONS --- 
         const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const formatDate = (timestamp) => {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        };
 
         const findProject = (projectId) => state.projects.find(p => p.id === projectId);
         const findPrompt = (projectId, promptId) => findProject(projectId)?.prompts.find(p => p.id === promptId);
-        const findVersion = (projectId, promptId, versionId) => findPrompt(projectId, promptId)?.versions.find(v => v.id === versionId);
+        const findVersion = (projectId, promptId, versionId) => {
+            const prompt = findPrompt(projectId, promptId);
+            if (!prompt) return null;
+            const sourceArray = prompt.type === 'chain' ? prompt.steps : prompt.versions;
+            return sourceArray?.find(v => v.id === versionId);
+        };
         
         const getSelectedProject = () => findProject(state.selectedProjectId);
         const getSelectedPrompt = () => findPrompt(state.selectedProjectId, state.selectedPromptId);
         const getSelectedVersion = () => findVersion(state.selectedProjectId, state.selectedPromptId, state.selectedVersionId);
 
-        // --- SNIPPET FUNCTIONS ---
+        const showToast = (message, type = 'success') => {
+            clearTimeout(toastTimeout);
+            toast.textContent = message;
+            toast.className = 'text-white font-bold py-2 px-6 rounded-full shadow-lg';
+            toast.classList.add(type === 'success' ? 'bg-green-500' : 'bg-red-500');
+            toast.classList.add('show');
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
+        };
+
+        // --- SNIPPET & VARIABLE FUNCTIONS --- 
         const replaceSnippets = (text) => {
             if (!text) return '';
-            return text.replace(/\{\{([^}]+)\}\}/g, (match, snippetName) => {
+            return text.replace(/#([a-zA-Z0-9_]+)/g, (match, snippetName) => {
                 const snippet = state.snippets.find(s => s.name === snippetName.trim());
                 return snippet ? snippet.content : match; 
+            });
+        };
+        
+        const replaceVariables = (text) => {
+            if (!text) return '';
+            return text.replace(/\[([^\]]+)\]/g, (match, varName) => {
+                const input = document.querySelector(`input[data-variable-name="${varName}"]`);
+                return input && input.value ? input.value : '';
+            });
+        };
+        
+        const renderVariableInputs = () => {
+            const prompt = getSelectedPrompt();
+            if (!prompt) return;
+
+            let textToScan = '';
+            if (prompt.type === 'simple') {
+                textToScan = promptEditor.getText();
+            } else if (prompt.type === 'chain') {
+                textToScan = prompt.steps.map(step => {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = step.content;
+                    return tempDiv.innerText;
+                }).join(' ');
+            }
+
+            const variableRegex = /\[([^\]]+)\]/g;
+            let match;
+            const foundVariables = new Set();
+            while ((match = variableRegex.exec(textToScan)) !== null) {
+                foundVariables.add(match[1]);
+            }
+
+            const currentVariablesContainer = editorView.querySelector('#variables-container');
+            if (!currentVariablesContainer) return;
+            const currentVariablesInputs = currentVariablesContainer.querySelector('#variables-inputs');
+
+            if (foundVariables.size === 0) {
+                currentVariablesContainer.classList.add('hidden');
+                return;
+            }
+
+            currentVariablesContainer.classList.remove('hidden');
+            currentVariablesInputs.innerHTML = '';
+            
+            foundVariables.forEach(varName => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label for="var-${varName}" class="block text-sm font-medium text-slate-600 mb-1">${varName}</label>
+                    <input type="text" id="var-${varName}" data-variable-name="${varName}" class="w-full p-2 border border-slate-300 rounded-lg dark:bg-slate-700 dark:border-slate-600" placeholder="Wprowadź wartość dla ${varName}...">
+                `;
+                div.querySelector('input').oninput = updateCombinedOutput;
+                currentVariablesInputs.appendChild(div);
             });
         };
 
         const renderSnippetsInModal = () => {
             snippetsListModal.innerHTML = '';
             if (state.snippets.length === 0) {
-                snippetsListModal.innerHTML = '<p class="text-slate-500 text-center">Brak zapisanych wstawek.</p>';
+                snippetsListModal.innerHTML = `<div class="text-center text-slate-500 py-4"><svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg><p class="mt-2 text-sm">Brak zapisanych wstawek.</p></div>`;
                 return;
             }
             state.snippets.forEach(snippet => {
                 const li = document.createElement('li');
-                li.className = 'p-2 border-b flex justify-between items-center';
-                li.innerHTML = `
-                    <strong class="font-semibold flex-grow truncate">${snippet.name}</strong>
-                    <div class="flex gap-2 ml-2">
-                        <button data-id="${snippet.id}" class="edit-snippet-btn text-blue-500 hover:text-blue-700">Edytuj</button>
-                        <button data-id="${snippet.id}" class="delete-snippet-btn text-red-500 hover:text-red-700">Usuń</button>
-                    </div>
-                `;
+                li.className = 'p-2 border-b dark:border-slate-700 flex justify-between items-center group';
+                li.innerHTML = `<strong class="font-semibold flex-grow truncate mr-2">${snippet.name}</strong><div class="flex gap-1"><button data-id="${snippet.id}" data-tooltip="Edytuj" class="edit-snippet-btn p-1 text-slate-400 hover:text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg></button><button data-id="${snippet.id}" data-tooltip="Usuń" class="delete-snippet-btn p-1 text-slate-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div>`;
                 snippetsListModal.appendChild(li);
             });
         };
@@ -466,24 +711,14 @@
             const content = snippetEditor.root.innerHTML;
             const hasContent = snippetEditor.getText().trim().length > 0;
 
-            if (!name || !hasContent) {
-                alert('Nazwa i treść wstawki nie mogą być puste.');
-                return;
-            }
-
+            if (!name || !hasContent) { alert('Nazwa i treść wstawki nie mogą być puste.'); return; }
             const isNameTaken = state.snippets.some(s => s.name === name && s.id !== id);
-            if (isNameTaken) {
-                alert('Wstawka o tej nazwie już istnieje.');
-                return;
-            }
+            if (isNameTaken) { alert('Wstawka o tej nazwie już istnieje.'); return; }
 
-            if (id) { // Editing
+            if (id) {
                 const snippet = state.snippets.find(s => s.id === id);
-                if (snippet) {
-                    snippet.name = name;
-                    snippet.content = content;
-                }
-            } else { // Adding
+                if (snippet) { snippet.name = name; snippet.content = content; }
+            } else {
                 state.snippets.unshift({ id: generateId(), name, content });
             }
 
@@ -511,7 +746,16 @@
                 saveData();
                 renderSnippetsInModal();
                 updateCombinedOutput();
-            });
+            }, 'Usuń');
+        };
+
+        const showSnippetDropdown = (bounds) => {
+            renderSnippetDropdown();
+            if (bounds) {
+                snippetDropdown.style.left = `${bounds.left}px`;
+                snippetDropdown.style.top = `${bounds.bottom + 5}px`;
+            }
+            snippetDropdown.classList.remove('hidden');
         };
 
         const renderSnippetDropdown = () => {
@@ -523,7 +767,8 @@
                     const item = document.createElement('div');
                     item.className = 'snippet-item';
                     item.textContent = snippet.name;
-                    item.onclick = () => {
+                    item.onclick = (e) => {
+                        e.stopPropagation();
                         insertSnippetPlaceholder(snippet.name);
                         snippetDropdown.classList.add('hidden');
                     };
@@ -533,13 +778,24 @@
         };
 
         const insertSnippetPlaceholder = (name) => {
-            const placeholder = `{{${name}}}`;
             const range = promptEditor.getSelection(true);
-            promptEditor.insertText(range.index, placeholder);
+            const triggerText = promptEditor.getText(range.index - 1, 1);
+            
+            let insertIndex = range.index;
+            let lengthToDelete = 0;
+
+            if (triggerText === '#') {
+                insertIndex -= 1;
+                lengthToDelete = 1;
+            }
+            
+            const placeholder = `#${name} `;
+            promptEditor.deleteText(insertIndex, lengthToDelete, 'user');
+            promptEditor.insertText(insertIndex, placeholder, 'user');
+            promptEditor.setSelection(insertIndex + placeholder.length);
         };
 
-
-        // --- RENDER FUNCTIONS ---
+        // --- RENDER FUNCTIONS --- 
         const renderAll = () => {
             renderProjects();
             renderPrompts();
@@ -549,9 +805,25 @@
             updateButtonStates();
         };
         
+        const updateFavoritesScrolling = () => {
+            setTimeout(() => {
+                const isScrollable = favoritesContainer.scrollWidth > favoritesContainer.clientWidth;
+                const atStart = favoritesContainer.scrollLeft < 1;
+                const atEnd = favoritesContainer.scrollLeft + favoritesContainer.clientWidth >= favoritesContainer.scrollWidth - 1;
+
+                favLeftBtn.classList.toggle('hidden', !isScrollable || atStart);
+                favRightBtn.classList.toggle('hidden', !isScrollable || atEnd);
+
+                const fadeLeft = favoritesBar.querySelector('.favorites-fade-left');
+                const fadeRight = favoritesBar.querySelector('.favorites-fade-right');
+                if (fadeLeft) fadeLeft.classList.toggle('hidden', !isScrollable || atStart);
+                if (fadeRight) fadeRight.classList.toggle('hidden', !isScrollable || atEnd);
+            }, 50);
+        };
+
         const renderFavoritesBar = () => {
             favoritesContainer.innerHTML = '';
-            const favorites = [];
+            let favorites = [];
             state.projects.forEach(project => {
                 project.prompts.forEach(prompt => {
                     if (prompt.isFavorite) {
@@ -559,75 +831,146 @@
                     }
                 });
             });
+            
+            favorites.sort((a, b) => (a.favoriteOrder || 0) - (b.favoriteOrder || 0));
 
             if (favorites.length > 0) {
                 favoritesBar.classList.remove('hidden');
                 favorites.forEach(fav => {
-                    const favButton = document.createElement('button');
-                    favButton.className = 'px-4 py-2 bg-amber-200 text-amber-800 rounded-full text-base font-bold whitespace-nowrap hover:bg-amber-300 transition-colors';
-                    favButton.textContent = fav.name;
-                    favButton.dataset.projectId = fav.projectId;
-                    favButton.dataset.promptId = fav.id;
-                    favButton.onclick = () => {
-                        selectProject(fav.projectId);
-                        renderPrompts(); 
-                        selectPrompt(fav.id);
-                    };
-                    favoritesContainer.appendChild(favButton);
+                    const favChip = document.createElement('div');
+                    favChip.className = 'flex-shrink-0 cursor-pointer flex items-center gap-2.5 pl-3 pr-4 py-2 rounded-full border bg-white text-slate-700 border-slate-200 hover:bg-slate-200 hover:border-slate-300 transition-all duration-200 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600 dark:hover:border-slate-500';
+                    favChip.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-400 dark:text-amber-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                           <span class="font-semibold truncate" style="max-width: 18ch;">${fav.name}</span>`;
+                    favChip.dataset.projectId = fav.projectId;
+                    favChip.dataset.promptId = fav.id;
+                    favChip.dataset.type = 'favorite';
+                    favChip.draggable = true;
+                    favChip.onclick = () => { selectProject(fav.projectId); renderPrompts(); selectPrompt(fav.id); };
+                    favoritesContainer.appendChild(favChip);
                 });
             } else {
                 favoritesBar.classList.add('hidden');
             }
+            updateSidebarTop();
+            updateFavoritesScrolling();
         };
 
-        const createListItem = ({ id, name, type, selected, onDelete, onSelect, onNameUpdate, isFavorite, onFavoriteToggle }) => {
+        const createListItem = ({ id, name, type, selected, onDelete, onSelect, onNameUpdate, onDuplicate, isFavorite, onFavoriteToggle, status, onStatusToggle, createdAt, updatedAt }) => {
             const li = document.createElement('li');
-            li.className = `group flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${selected ? 'bg-indigo-100 text-indigo-800 font-semibold' : 'hover:bg-slate-100'}`;
+            const selectedClasses = selected ? 'bg-accent-100 text-accent-800 font-semibold border-l-4 border-accent-500' : 'hover:bg-slate-100 border-l-4 border-transparent';
+            li.className = `group relative flex items-center justify-between p-2 rounded-r-lg cursor-pointer transition-colors ${selectedClasses}`;
             li.dataset.id = id;
             li.dataset.type = type;
             li.draggable = true;
 
-            if (type === 'prompt') {
-                const favoriteBtn = document.createElement('button');
-                favoriteBtn.className = 'mr-2 text-slate-400 hover:text-amber-500';
-                favoriteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="${isFavorite ? '#f59e0b' : 'currentColor'}"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>`;
-                favoriteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    onFavoriteToggle(id);
-                };
-                li.appendChild(favoriteBtn);
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'flex items-center flex-grow min-w-0';
+            
+            if (type === 'version' && status) {
+                const statusDot = document.createElement('span');
+                statusDot.className = `status-dot ${status} mr-2 flex-shrink-0`;
+                statusDot.dataset.tooltip = `Zmień na ${status === 'experimental' ? 'produkcyjny' : 'eksperymentalny'}`;
+                statusDot.onclick = (e) => { e.stopPropagation(); onStatusToggle(id); };
+                contentWrapper.appendChild(statusDot);
             }
+
+            if (type === 'prompt') {
+                const icon = document.createElement('span');
+                icon.className = 'mr-2 text-slate-400 flex-shrink-0';
+                if (isFavorite) {
+                    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-400 dark:text-amber-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>`;
+                    icon.dataset.tooltip = 'Ulubiony';
+                } else {
+                    const prompt = findPrompt(state.selectedProjectId, id);
+                    if (prompt?.type === 'chain') {
+                        icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" /></svg>`;
+                        icon.dataset.tooltip = 'Łańcuch Promptów';
+                    } else {
+                         icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>`;
+                        icon.dataset.tooltip = 'Prompt Prosty';
+                    }
+                }
+                contentWrapper.appendChild(icon);
+            }
+            
+            const nameContainer = document.createElement('div');
+            nameContainer.className = "flex flex-col min-w-0";
 
             const nameSpan = document.createElement('span');
             nameSpan.textContent = name;
             nameSpan.className = 'flex-grow truncate';
-            li.appendChild(nameSpan);
+            nameContainer.appendChild(nameSpan);
+            
+            if (type === 'version' || (type === 'prompt')) {
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'version-date truncate';
+                let dateText = `Utw: ${formatDate(createdAt)}`;
+                if (updatedAt && updatedAt !== createdAt) {
+                    dateText += ` / Akt: ${formatDate(updatedAt)}`;
+                }
+                dateSpan.textContent = dateText;
+                nameContainer.appendChild(dateSpan);
+            }
+
+            contentWrapper.appendChild(nameContainer);
+            li.appendChild(contentWrapper);
+
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.className = 'flex items-center opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0';
+            
+            if (type === 'prompt') {
+                 const favBtn = document.createElement('button');
+                 favBtn.innerHTML = isFavorite ? 
+                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>` : 
+                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>`;
+                 favBtn.className = 'text-slate-400 hover:text-amber-500 p-1';
+                 favBtn.dataset.tooltip = isFavorite ? "Usuń z ulubionych" : "Dodaj do ulubionych";
+                 favBtn.onclick = (e) => { e.stopPropagation(); onFavoriteToggle(id); };
+                 buttonsDiv.appendChild(favBtn);
+            }
+
+            if (type === 'prompt' || type === 'version') {
+                const duplicateBtn = document.createElement('button');
+                duplicateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2-2H9a2 2 0 01-2-2V9z"></path><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h6a2 2 0 00-2-2H5z"></path></svg>`;
+                duplicateBtn.className = 'text-slate-400 hover:text-blue-500 p-1';
+                duplicateBtn.dataset.tooltip = "Duplikuj";
+                duplicateBtn.onclick = (e) => { e.stopPropagation(); onDuplicate(id); };
+                buttonsDiv.appendChild(duplicateBtn);
+            }
+
+            const editBtn = document.createElement('button');
+            editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" /></svg>`;
+            editBtn.className = 'text-slate-400 hover:text-blue-500 p-1';
+            editBtn.dataset.tooltip = "Zmień nazwę";
+            editBtn.onclick = (e) => { e.stopPropagation(); nameSpan.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); };
+            buttonsDiv.appendChild(editBtn);
 
             const deleteBtn = document.createElement('button');
-            deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>`;
-            deleteBtn.className = 'text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-2';
-            deleteBtn.onclick = (e) => {
-                e.stopPropagation();
-                onDelete(id);
-            };
-            li.appendChild(deleteBtn);
+            deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`;
+            deleteBtn.className = 'text-slate-400 hover:text-red-500 p-1';
+            deleteBtn.dataset.tooltip = "Usuń";
+            deleteBtn.onclick = (e) => { e.stopPropagation(); onDelete(id); };
+            buttonsDiv.appendChild(deleteBtn);
+            li.appendChild(buttonsDiv);
 
             li.onclick = () => onSelect(id);
 
             nameSpan.ondblclick = (e) => {
                 e.stopPropagation();
+                const currentName = nameSpan.textContent;
                 const input = document.createElement('input');
                 input.type = 'text';
-                input.value = name;
-                input.className = 'w-full bg-transparent border-b-2 border-indigo-500 focus:outline-none';
+                input.value = currentName;
+                input.className = 'w-full bg-transparent border-b-2 border-accent-500 focus:outline-none';
                 nameSpan.replaceWith(input);
                 input.focus();
                 
                 const saveName = () => {
                     const newName = input.value.trim();
-                    if (newName && newName !== name) {
+                    if (newName && newName !== currentName) {
                         onNameUpdate(id, newName);
                     } else {
+                        nameSpan.textContent = currentName;
                         input.replaceWith(nameSpan);
                     }
                 };
@@ -635,27 +978,30 @@
                 input.onblur = saveName;
                 input.onkeydown = (e) => {
                     if (e.key === 'Enter') input.blur();
-                    if (e.key === 'Escape') {
-                        input.value = name;
-                        input.blur();
-                    }
+                    if (e.key === 'Escape') { input.value = currentName; input.blur(); }
                 };
             };
 
             return li;
         };
         
+        const renderEmptyState = (listElement, icon, text) => { listElement.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center text-slate-400 p-4">${icon}<p class="mt-2 text-sm">${text}</p></div>`; };
+        
         const renderProjects = () => {
             projectsList.innerHTML = '';
-            state.projects.forEach(project => {
+            const filterText = projectSearch.value.toLowerCase();
+            const filteredProjects = state.projects.filter(p => p.name.toLowerCase().includes(filterText));
+
+            if(filteredProjects.length === 0) {
+                renderEmptyState(projectsList, '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>', 'Brak pasujących projektów.');
+                return;
+            }
+            filteredProjects.forEach(project => {
                 const li = createListItem({
-                    id: project.id,
-                    name: project.name,
-                    type: 'project',
-                    selected: project.id === state.selectedProjectId,
-                    onDelete: (id) => showConfirmation('Usunąć projekt?', `Spowoduje to usunięcie wszystkich promptów i wersji w projekcie "${project.name}".`, () => deleteProject(id)),
-                    onSelect: selectProject,
-                    onNameUpdate: updateProjectName
+                    id: project.id, name: project.name, type: 'project', selected: project.id === state.selectedProjectId,
+                    onDelete: (id) => showConfirmation('Usunąć projekt?', `Spowoduje to usunięcie wszystkich promptów i wersji w projekcie "${project.name}".`, () => deleteProject(id), 'Usuń'),
+                    onSelect: selectProject, onNameUpdate: updateProjectName,
+                    onDuplicate: () => {}
                 });
                 projectsList.appendChild(li);
             });
@@ -664,503 +1010,870 @@
         const renderPrompts = () => {
             promptsList.innerHTML = '';
             const project = getSelectedProject();
-            if (project && project.prompts) {
-                project.prompts.forEach(prompt => {
-                    const li = createListItem({
-                        id: prompt.id,
-                        name: prompt.name,
-                        type: 'prompt',
-                        selected: prompt.id === state.selectedPromptId,
-                        isFavorite: prompt.isFavorite,
-                        onDelete: (id) => showConfirmation('Usunąć prompt?', `Spowoduje to usunięcie wszystkich wersji w prompcie "${prompt.name}".`, () => deletePrompt(id)),
-                        onSelect: selectPrompt,
-                        onNameUpdate: updatePromptName,
-                        onFavoriteToggle: (id) => {
-                            const p = findPrompt(state.selectedProjectId, id);
-                            if (p) {
-                                p.isFavorite = !p.isFavorite;
-                                saveData();
-                                renderAll();
+            if (!project) { renderEmptyState(promptsList, '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>', 'Wybierz projekt.'); return; }
+            
+            const filterText = promptSearch.value.toLowerCase();
+            const filteredPrompts = project.prompts.filter(p => p.name.toLowerCase().includes(filterText));
+
+            if (filteredPrompts.length === 0) { renderEmptyState(promptsList, '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>', 'Brak pasujących promptów.'); return; }
+            
+            filteredPrompts.forEach(prompt => {
+                const li = createListItem({
+                    id: prompt.id, name: prompt.name, type: 'prompt', selected: prompt.id === state.selectedPromptId, isFavorite: prompt.isFavorite,
+                    createdAt: prompt.createdAt, updatedAt: prompt.updatedAt,
+                    onDelete: (id) => showConfirmation('Usunąć prompt?', `Spowoduje to usunięcie wszystkich wersji w prompcie "${prompt.name}".`, () => deletePrompt(id), 'Usuń'),
+                    onSelect: selectPrompt, onNameUpdate: updatePromptName,
+                    onDuplicate: duplicatePrompt,
+                    onFavoriteToggle: (id) => { 
+                        const p = findPrompt(state.selectedProjectId, id); 
+                        if (p) { 
+                            p.isFavorite = !p.isFavorite; 
+                            if(p.isFavorite) {
+                                p.favoriteOrder = Date.now();
+                            } else {
+                                delete p.favoriteOrder;
                             }
-                        }
-                    });
-                    promptsList.appendChild(li);
+                            saveData(); 
+                            renderAll(); 
+                        } 
+                    }
                 });
-            }
+                promptsList.appendChild(li);
+            });
         };
 
         const renderVersions = () => {
             versionsList.innerHTML = '';
             const prompt = getSelectedPrompt();
-            if (prompt && prompt.versions) {
-                prompt.versions.forEach(version => {
-                    const li = createListItem({
-                        id: version.id,
-                        name: version.name,
-                        type: 'version',
-                        selected: version.id === state.selectedVersionId,
-                        onDelete: (id) => showConfirmation('Usunąć wersję?', `Czy na pewno chcesz usunąć wersję "${version.name}"?`, () => deleteVersion(id)),
-                        onSelect: selectVersion,
-                        onNameUpdate: updateVersionName
-                    });
-                    versionsList.appendChild(li);
-                });
+            if (!prompt) { renderEmptyState(versionsList, '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>', 'Wybierz prompt.'); return; }
+            
+            const sourceArray = prompt.type === 'chain' ? prompt.steps : prompt.versions;
+            if (!sourceArray || sourceArray.length === 0) {
+                const message = prompt.type === 'chain' ? 'Dodaj pierwszy krok.' : 'Brak wersji.';
+                renderEmptyState(versionsList, '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>', message);
+                return;
             }
+
+            const filterText = versionSearch.value.toLowerCase();
+            const filteredVersions = sourceArray.filter(v => v.name.toLowerCase().includes(filterText));
+
+            if (filteredVersions.length === 0) { renderEmptyState(versionsList, '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>', 'Brak pasujących wersji.'); return; }
+            
+            filteredVersions.forEach(version => {
+                const li = createListItem({
+                    id: version.id, name: version.name, type: 'version', selected: version.id === state.selectedVersionId, status: version.status, createdAt: version.createdAt, updatedAt: version.updatedAt,
+                    onDelete: (id) => showConfirmation('Usunąć wersję?', `Czy na pewno chcesz usunąć wersję "${version.name}"?`, () => deleteVersion(id), 'Usuń'),
+                    onSelect: selectVersion, onNameUpdate: updateVersionName,
+                    onDuplicate: duplicateVersion,
+                    onStatusToggle: (id) => { const v = findVersion(state.selectedProjectId, state.selectedPromptId, id); if(v) { v.status = v.status === 'experimental' ? 'production' : 'experimental'; v.updatedAt = Date.now(); saveData(); renderVersions(); } }
+                });
+                versionsList.appendChild(li);
+            });
+        };
+        
+        const setEditorLock = (isLocked) => {
+            promptEditor.enable(!isLocked);
+            editorLockCheckbox.checked = !isLocked;
         };
 
         const renderEditor = () => {
+            const prompt = getSelectedPrompt();
+            if (prompt) {
+                if (prompt.type === 'simple') {
+                    renderSimpleEditor();
+                } else if (prompt.type === 'chain') {
+                    renderChainEditor();
+                }
+            } else {
+                editorView.innerHTML = '';
+                placeholderView.classList.remove('hidden');
+                fabContainer.classList.add('hidden');
+            }
+        };
+
+        const renderSimpleEditor = () => {
             const version = getSelectedVersion();
-            promptEditor.disable();
             if (version) {
-                promptEditor.enable();
+                 if (!editorView.contains(promptContentContainer)) {
+                     editorView.innerHTML = '';
+                     editorView.appendChild(promptContentContainer);
+                 }
                 editorView.classList.remove('hidden');
                 placeholderView.classList.add('hidden');
-                promptEditor.root.innerHTML = version.content || '';
+                fabContainer.classList.remove('hidden');
+                
+                changePromptTypeBtn.classList.remove('hidden');
+                changePromptTypeBtn.textContent = 'Zmień na łańcuch';
+
+                if (promptEditor.root.innerHTML !== (version.content || '')) {
+                   promptEditor.root.innerHTML = version.content || '';
+                }
+                
+                assistantContent.value = version.assistantContent || '';
+                assistantWrapper.classList.toggle('hidden', !version.isAssistantVisible);
+                toggleAssistantBtn.classList.toggle('rotate-180', version.isAssistantVisible);
+                assistantContainer.classList.remove('hidden');
+
+                setEditorLock(false);
+                renderVariableInputs();
                 updateCombinedOutput();
             } else {
                 editorView.classList.add('hidden');
                 placeholderView.classList.remove('hidden');
-                promptEditor.root.innerHTML = '';
-                tempContent.value = '';
-                combinedOutputPreview.innerHTML = '';
+                fabContainer.classList.add('hidden');
             }
+        };
+
+        const renderChainEditor = () => {
+            const prompt = getSelectedPrompt();
+            if (!prompt) return;
+
+            editorView.innerHTML = '';
+            editorView.classList.remove('hidden');
+            placeholderView.classList.add('hidden');
+            fabContainer.classList.remove('hidden');
+            
+            const chainContainer = document.createElement('div');
+            chainContainer.className = 'flex flex-col gap-4 h-full';
+            
+            chainContainer.innerHTML = `
+                <div class="flex-shrink-0">
+                    <div id="variables-container" class="hidden my-4">
+                        <label class="block text-sm font-medium text-slate-600 mb-2">Zmienne dynamiczne</label>
+                        <div id="variables-inputs" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+                </div>
+                <div id="chain-steps-container" class="flex-grow space-y-4 overflow-y-auto custom-scrollbar pr-2 -mr-2"></div>
+                <div class="flex-shrink-0">
+                    <button id="add-chain-step-btn" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Dodaj Krok</button>
+                    <div class="flex-grow flex flex-col min-h-[150px] border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+                        <label for="combined-output-preview" class="block text-sm font-medium text-slate-600 mb-1">Końcowy prompt (podgląd)</label>
+                        <div id="combined-output-preview" class="w-full h-full flex-grow mt-2 p-3 border bg-slate-50 border-slate-300 rounded-lg overflow-y-auto custom-scrollbar"></div>
+                    </div>
+                </div>
+            `;
+            editorView.appendChild(chainContainer);
+            
+            const editorControls = promptContentContainer.querySelector('#editor-controls');
+            if(editorControls) {
+                 changePromptTypeBtn.classList.remove('hidden');
+                 changePromptTypeBtn.textContent = 'Zmień na prosty';
+            }
+
+
+            const stepsContainer = chainContainer.querySelector('#chain-steps-container');
+            chainQuillInstances.clear();
+
+            prompt.steps.forEach((step, index) => {
+                const stepEl = document.createElement('div');
+                stepEl.className = 'p-4 border rounded-lg dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm';
+                stepEl.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg font-bold text-slate-400">${index + 1}</span>
+                            <input type="text" value="${step.name}" data-step-id="${step.id}" class="step-name-input text-lg font-semibold bg-transparent focus:outline-none focus:bg-slate-100 dark:focus:bg-slate-700 rounded px-2 py-1 w-full">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button data-step-id="${step.id}" data-tooltip="Duplikuj" class="duplicate-step-btn text-slate-400 hover:text-blue-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2-2H9a2 2 0 01-2-2V9z"></path><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h6a2 2 0 00-2-2H5z"></path></svg></button>
+                            <button data-step-id="${step.id}" data-tooltip="Przesuń w górę" class="move-step-up-btn text-slate-400 hover:text-blue-500 p-1 disabled:opacity-25" ${index === 0 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" /></svg></button>
+                            <button data-step-id="${step.id}" data-tooltip="Przesuń w dół" class="move-step-down-btn text-slate-400 hover:text-blue-500 p-1 disabled:opacity-25" ${index === prompt.steps.length - 1 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
+                            <button data-step-id="${step.id}" data-tooltip="Usuń" class="delete-step-btn text-slate-400 hover:text-red-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                        </div>
+                    </div>
+                    <div class="chain-step-editor" style="height: 150px;"></div>
+                `;
+                stepsContainer.appendChild(stepEl);
+                const editorEl = stepEl.querySelector('.chain-step-editor');
+                const quill = new Quill(editorEl, {
+                    modules: { toolbar: quillToolbarOptions },
+                    theme: 'snow'
+                });
+                quill.root.innerHTML = step.content;
+                chainQuillInstances.set(step.id, quill);
+
+                quill.on('text-change', () => {
+                    step.content = quill.root.innerHTML;
+                    prompt.updatedAt = Date.now();
+                    updateCombinedOutput();
+                    renderVariableInputs();
+                });
+                
+                const nameInput = stepEl.querySelector('.step-name-input');
+                nameInput.onchange = () => {
+                    step.name = nameInput.value.trim();
+                    prompt.updatedAt = Date.now();
+                    saveData();
+                };
+            });
+            
+            chainContainer.querySelector('#add-chain-step-btn').onclick = () => {
+                prompt.steps.push({ id: generateId(), name: 'Nowy Krok', content: '' });
+                prompt.updatedAt = Date.now();
+                saveData();
+                renderChainEditor();
+            };
+
+            stepsContainer.addEventListener('click', e => {
+                const prompt = getSelectedPrompt();
+                if (!prompt) return;
+
+                const button = e.target.closest('button');
+                if (!button) return;
+                
+                const stepId = button.dataset.stepId;
+                const index = prompt.steps.findIndex(s => s.id === stepId);
+
+                if (button.classList.contains('delete-step-btn')) {
+                    prompt.steps = prompt.steps.filter(s => s.id !== stepId);
+                } else if (button.classList.contains('move-step-up-btn') && index > 0) {
+                    [prompt.steps[index], prompt.steps[index - 1]] = [prompt.steps[index - 1], prompt.steps[index]];
+                } else if (button.classList.contains('move-step-down-btn') && index < prompt.steps.length - 1) {
+                    [prompt.steps[index], prompt.steps[index + 1]] = [prompt.steps[index + 1], prompt.steps[index]];
+                } else if (button.classList.contains('duplicate-step-btn')) {
+                    const originalStep = prompt.steps[index];
+                    const newStep = JSON.parse(JSON.stringify(originalStep));
+                    newStep.id = generateId();
+                    newStep.name = `${originalStep.name} (kopia)`;
+                    prompt.steps.splice(index + 1, 0, newStep);
+                }
+                
+                prompt.updatedAt = Date.now();
+                saveData(); 
+                renderChainEditor();
+            });
+
+            renderVariableInputs();
+            updateCombinedOutput();
         };
 
         const updateButtonStates = () => {
             addPromptBtn.disabled = !state.selectedProjectId;
-            addVersionBtn.disabled = !state.selectedPromptId;
+            const prompt = getSelectedPrompt();
+            addVersionBtn.disabled = !state.selectedPromptId || (prompt && prompt.type === 'chain');
+        };
+        
+        const updateSidebarTop = () => {
+            const headerHeight = mainHeader.offsetHeight;
+            const favBarHeight = favoritesBar.classList.contains('hidden') ? 0 : favoritesBar.offsetHeight;
+            
+            favoritesBar.style.top = `${headerHeight}px`;
+            document.querySelector('main').style.paddingTop = `${favBarHeight + 16}px`;
+            document.documentElement.style.setProperty('--sidebar-top', `${headerHeight}px`);
         };
 
-        // --- EVENT HANDLERS & ACTIONS ---
+        // --- EVENT HANDLERS & ACTIONS --- 
+        const selectProject = (projectId) => { if (state.selectedProjectId !== projectId) { state.selectedProjectId = projectId; state.selectedPromptId = null; state.selectedVersionId = null; promptSearch.value = ''; versionSearch.value = ''; renderAll(); } };
+        const selectPrompt = (promptId) => { if (state.selectedPromptId !== promptId) { state.selectedPromptId = promptId; state.selectedVersionId = null; versionSearch.value = ''; const prompt = getSelectedPrompt(); if (prompt && prompt.type === 'simple' && prompt.versions && prompt.versions.length > 0) { state.selectedVersionId = prompt.versions[0].id; } renderAll(); } };
+        const selectVersion = (versionId) => { if (state.selectedVersionId !== versionId) { state.selectedVersionId = versionId; renderAll(); } };
 
-        // Selection
-        const selectProject = (projectId) => {
-            if (state.selectedProjectId !== projectId) {
-                state.selectedProjectId = projectId;
-                state.selectedPromptId = null;
-                state.selectedVersionId = null;
-                renderAll();
-            }
-        };
-
-        const selectPrompt = (promptId) => {
-            if (state.selectedPromptId !== promptId) {
-                state.selectedPromptId = promptId;
-                state.selectedVersionId = null;
-                const prompt = getSelectedPrompt();
-                if (prompt && prompt.versions && prompt.versions.length > 0) {
-                    state.selectedVersionId = prompt.versions[0].id;
-                }
-                renderAll();
-            }
-        };
-
-        const selectVersion = (versionId) => {
-            if (state.selectedVersionId !== versionId) {
-                state.selectedVersionId = versionId;
-                renderAll();
-            }
-        };
-
-        // Add
         addProjectBtn.onclick = () => {
-            const newProject = {
-                id: generateId(),
-                name: `Nowy Projekt ${state.projects.length + 1}`,
-                prompts: []
-            };
+            const newProject = { id: generateId(), name: `Nowy Projekt ${state.projects.length + 1}`, prompts: [] };
             state.projects.unshift(newProject);
-            selectProject(newProject.id);
             saveData();
+            selectProject(newProject.id);
+            addPrompt('simple');
+        };
+
+        const addPrompt = (type) => {
+            const project = getSelectedProject();
+            if (project) {
+                const now = Date.now();
+                let newPrompt;
+                if (type === 'simple') {
+                    newPrompt = { id: generateId(), type: 'simple', name: `Nowy Prompt ${project.prompts.length + 1}`, versions: [], isFavorite: false, createdAt: now, updatedAt: now };
+                    const newVersion = { id: generateId(), name: 'Wersja 1', content: '', status: 'experimental', createdAt: now, updatedAt: now, isAssistantVisible: true, assistantContent: '' };
+                    newPrompt.versions.unshift(newVersion);
+                } else { // chain
+                    newPrompt = { id: generateId(), type: 'chain', name: `Nowy Łańcuch ${project.prompts.length + 1}`, steps: [], isFavorite: false, createdAt: now, updatedAt: now };
+                    newPrompt.steps.push({ id: generateId(), name: 'Nowy Krok', content: '' });
+                }
+                
+                project.prompts.unshift(newPrompt);
+                saveData();
+                selectPrompt(newPrompt.id);
+            }
         };
 
         addPromptBtn.onclick = () => {
-            const project = getSelectedProject();
-            if (project) {
-                const newPrompt = {
-                    id: generateId(),
-                    name: `Nowy Prompt ${project.prompts.length + 1}`,
-                    versions: [],
-                    isFavorite: false
-                };
-                project.prompts.unshift(newPrompt);
-                selectPrompt(newPrompt.id);
-                saveData();
+            addPrompt('simple');
+        };
+
+        changePromptTypeBtn.onclick = () => {
+            const prompt = getSelectedPrompt();
+            if (!prompt) return;
+
+            if (prompt.type === 'simple') {
+                showConfirmation('Zmienić typ na Łańcuch?', 'Obecna treść promptu stanie się pierwszym krokiem nowego łańcucha. Ta operacja jest odwracalna.', () => {
+                    const currentVersion = getSelectedVersion() || prompt.versions[0];
+                    prompt.type = 'chain';
+                    prompt.steps = [{
+                        id: generateId(),
+                        name: 'Krok 1',
+                        content: currentVersion.content || ''
+                    }];
+                    delete prompt.versions;
+                    prompt.updatedAt = Date.now();
+                    state.selectedVersionId = null;
+                    saveData();
+                    renderAll();
+                }, 'Zmień');
+            } else if (prompt.type === 'chain') {
+                showConfirmation('Zmienić typ na Prosty?', 'Tylko treść pierwszego kroku zostanie zachowana jako nowa wersja. Pozostałe kroki zostaną utracone.', () => {
+                    const firstStep = prompt.steps[0] || { content: '' };
+                    prompt.type = 'simple';
+                    const now = Date.now();
+                    prompt.versions = [{
+                        id: generateId(),
+                        name: 'Wersja 1',
+                        content: firstStep.content,
+                        status: 'experimental',
+                        createdAt: now,
+                        updatedAt: now,
+                        isAssistantVisible: true,
+                        assistantContent: ''
+                    }];
+                    delete prompt.steps;
+                    prompt.updatedAt = now;
+                    state.selectedVersionId = prompt.versions[0].id;
+                    saveData();
+                    renderAll();
+                }, 'Zmień');
             }
         };
 
         addVersionBtn.onclick = () => {
             const prompt = getSelectedPrompt();
-            if (prompt) {
-                const newVersion = {
-                    id: generateId(),
-                    name: `Wersja ${prompt.versions.length + 1}`,
-                    content: ''
-                };
+            if (prompt && prompt.type === 'simple') {
+                const now = Date.now();
+                const newVersion = { id: generateId(), name: `Wersja ${prompt.versions.length + 1}`, content: '', status: 'experimental', createdAt: now, updatedAt: now, isAssistantVisible: true, assistantContent: '' };
                 prompt.versions.unshift(newVersion);
+                prompt.updatedAt = now;
+                saveData();
                 selectVersion(newVersion.id);
-                saveData();
             }
         };
-
-        // Delete
-        const deleteProject = (projectId) => {
-            state.projects = state.projects.filter(p => p.id !== projectId);
-            if (state.selectedProjectId === projectId) {
-                state.selectedProjectId = null;
-                state.selectedPromptId = null;
-                state.selectedVersionId = null;
-            }
-            renderAll();
-            saveData();
-        };
-
-        const deletePrompt = (promptId) => {
+        
+        const duplicatePrompt = (promptId) => {
             const project = getSelectedProject();
-            if (project) {
-                project.prompts = project.prompts.filter(p => p.id !== promptId);
-                if (state.selectedPromptId === promptId) {
-                    state.selectedPromptId = null;
-                    state.selectedVersionId = null;
+            const originalPrompt = findPrompt(state.selectedProjectId, promptId);
+            if(project && originalPrompt) {
+                const newPrompt = JSON.parse(JSON.stringify(originalPrompt)); 
+                newPrompt.id = generateId();
+                newPrompt.name = `${originalPrompt.name} (kopia)`;
+                newPrompt.isFavorite = false;
+                delete newPrompt.favoriteOrder;
+                const now = Date.now();
+                newPrompt.createdAt = now;
+                newPrompt.updatedAt = now;
+
+                const sourceArray = newPrompt.type === 'chain' ? newPrompt.steps : newPrompt.versions;
+                if(sourceArray) {
+                    sourceArray.forEach(v => {
+                        v.id = generateId();
+                        v.createdAt = v.updatedAt = now;
+                    });
                 }
-                renderAll();
-                saveData();
-            }
-        };
 
-        const deleteVersion = (versionId) => {
-            const prompt = getSelectedPrompt();
-            if (prompt) {
-                const versionIndex = prompt.versions.findIndex(v => v.id === versionId);
-                prompt.versions = prompt.versions.filter(v => v.id !== versionId);
-                if (state.selectedVersionId === versionId) {
-                    state.selectedVersionId = null;
-                    if (prompt.versions.length > 0) {
-                        const newIndex = Math.max(0, versionIndex - 1);
-                        state.selectedVersionId = prompt.versions[newIndex].id;
-                    }
-                }
-                renderAll();
+                const originalIndex = project.prompts.findIndex(p => p.id === promptId);
+                project.prompts.splice(originalIndex + 1, 0, newPrompt);
                 saveData();
-            }
-        };
-
-        // Update
-        const updateProjectName = (id, newName) => {
-            const project = findProject(id);
-            if (project) {
-                project.name = newName;
-                renderProjects();
-                saveData();
-            }
-        };
-
-        const updatePromptName = (id, newName) => {
-            const prompt = findPrompt(state.selectedProjectId, id);
-            if (prompt) {
-                prompt.name = newName;
                 renderPrompts();
-                saveData();
+                selectPrompt(newPrompt.id);
             }
         };
 
-        const updateVersionName = (id, newName) => {
-            const version = findVersion(state.selectedProjectId, state.selectedPromptId, id);
-            if (version) {
-                version.name = newName;
-                renderVersions();
-                saveData();
+        const duplicateVersion = (versionId) => {
+            const prompt = getSelectedPrompt();
+            if (prompt && prompt.type === 'simple') {
+                const originalVersion = findVersion(state.selectedProjectId, state.selectedPromptId, versionId);
+                if(originalVersion) {
+                    const newVersion = JSON.parse(JSON.stringify(originalVersion));
+                    newVersion.id = generateId();
+                    newVersion.name = `${originalVersion.name} (kopia)`;
+                    const now = Date.now();
+                    newVersion.createdAt = newVersion.updatedAt = now;
+                    
+                    const originalIndex = prompt.versions.findIndex(v => v.id === versionId);
+                    prompt.versions.splice(originalIndex + 1, 0, newVersion);
+                    prompt.updatedAt = now;
+                    saveData();
+                    renderVersions();
+                    selectVersion(newVersion.id);
+                }
             }
         };
+
+        const deleteProject = (projectId) => { state.projects = state.projects.filter(p => p.id !== projectId); if (state.selectedProjectId === projectId) { state.selectedProjectId = null; state.selectedPromptId = null; state.selectedVersionId = null; } renderAll(); saveData(); };
+        const deletePrompt = (promptId) => { const project = getSelectedProject(); if (project) { project.prompts = project.prompts.filter(p => p.id !== promptId); if (state.selectedPromptId === promptId) { state.selectedPromptId = null; state.selectedVersionId = null; } renderAll(); saveData(); } };
+        const deleteVersion = (versionId) => { const prompt = getSelectedPrompt(); if (prompt && prompt.type === 'simple') { const vIndex = prompt.versions.findIndex(v => v.id === versionId); prompt.versions = prompt.versions.filter(v => v.id !== versionId); if (state.selectedVersionId === versionId) { state.selectedVersionId = null; if (prompt.versions.length > 0) { const newIndex = Math.max(0, vIndex - 1); state.selectedVersionId = prompt.versions[newIndex].id; } } prompt.updatedAt = Date.now(); renderAll(); saveData(); } };
+
+        const updateVersionName = (id, newName) => { const v = findVersion(state.selectedProjectId, state.selectedPromptId, id); if (v) { v.name = newName; v.updatedAt = Date.now(); getSelectedPrompt().updatedAt = Date.now(); renderVersions(); saveData(); } };
+        const updateProjectName = (id, newName) => { const p = findProject(id); if (p) { p.name = newName; renderProjects(); saveData(); } };
+        const updatePromptName = (id, newName) => { const p = findPrompt(state.selectedProjectId, id); if (p) { p.name = newName; p.updatedAt = Date.now(); renderAll(); saveData(); } };
 
         promptEditor.on('text-change', (delta, oldDelta, source) => {
             if (source === 'user') {
-                const version = getSelectedVersion();
-                if (version) {
-                    version.content = promptEditor.root.innerHTML;
-                    updateCombinedOutput();
-                    saveData();
+                const prompt = getSelectedPrompt();
+                if(prompt) prompt.updatedAt = Date.now();
+                renderVariableInputs();
+                updateCombinedOutput();
+                const range = promptEditor.getSelection();
+                if (range) {
+                    const text = promptEditor.getText(range.index - 1, 1);
+                    if (text === '#') {
+                        const editorBounds = promptEditor.container.getBoundingClientRect();
+                        const rangeBounds = promptEditor.getBounds(range.index);
+                        const finalBounds = {
+                            left: editorBounds.left + rangeBounds.left,
+                            bottom: editorBounds.top + rangeBounds.bottom,
+                        };
+                        showSnippetDropdown(finalBounds);
+                    } else {
+                        snippetDropdown.classList.add('hidden');
+                    }
                 }
             }
         });
-
-        tempContent.oninput = updateCombinedOutput;
+        
+        editorLockCheckbox.onchange = () => {
+            setEditorLock(!editorLockCheckbox.checked);
+        };
 
         function updateCombinedOutput() {
-            const mainContent = promptEditor.root.innerHTML || '';
-            const processedMain = replaceSnippets(mainContent);
-            const temp = tempContent.value || '';
-            
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = processedMain;
-            
-            combinedOutputPreview.innerHTML = tempDiv.innerHTML;
-            
-            const tempText = temp ? `\n\n${temp}` : '';
-            const finalPlainText = combinedOutputPreview.innerText + tempText;
-            
-            combinedOutputPreview.dataset.plainText = finalPlainText.trim();
-        }
+            const prompt = getSelectedPrompt();
+            if (!prompt) return;
 
-        // Copy
-        const copyToClipboard = (btn) => {
-            const textToCopy = combinedOutputPreview.dataset.plainText;
-            if (!textToCopy) return;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const originalText = btn.innerHTML;
-                btn.innerHTML = 'Skopiowano!';
-                btn.classList.add('bg-green-500');
-                btn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.classList.remove('bg-green-500');
-                    btn.classList.add('bg-teal-500', 'hover:bg-teal-600');
-                }, 2000);
-            }).catch(err => {
-                console.error('Could not copy text: ', err);
-                alert('Nie udało się skopiować tekstu.');
+            const previewContainer = editorView.querySelector('#combined-output-preview');
+            if (!previewContainer) return;
+            previewContainer.innerHTML = '';
+
+            let allFragmentsHTML = [];
+            let allFragmentsPlainText = [];
+
+            if (prompt.type === 'simple') {
+                const mainContentHTML = promptEditor.root.innerHTML || '';
+                allFragmentsHTML.push(mainContentHTML);
+            } else if (prompt.type === 'chain') {
+                allFragmentsHTML = prompt.steps.map(step => {
+                    const editor = chainQuillInstances.get(step.id);
+                    return editor ? editor.root.innerHTML : step.content;
+                });
+            }
+
+            allFragmentsHTML.forEach((fragmentHTML, index) => {
+                let processedHTML = replaceSnippets(fragmentHTML);
+                processedHTML = replaceVariables(processedHTML);
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = processedHTML;
+                const plainText = tempDiv.innerText.trim();
+                allFragmentsPlainText.push(plainText);
+
+                const fragmentWrapper = document.createElement('div');
+                fragmentWrapper.className = 'relative group';
+                fragmentWrapper.innerHTML = processedHTML;
+
+                if (prompt.type === 'chain' && allFragmentsHTML.length > 1) {
+                    const copyBtn = document.createElement('button');
+                    copyBtn.textContent = 'Kopiuj fragment';
+                    copyBtn.className = 'absolute top-0 right-0 text-xs bg-slate-200 dark:bg-slate-600 px-2 py-1 rounded-md transition-opacity';
+                    copyBtn.onclick = () => {
+                        navigator.clipboard.writeText(plainText).then(() => showToast("Fragment skopiowany!"));
+                    };
+                    fragmentWrapper.appendChild(copyBtn);
+                }
+                previewContainer.appendChild(fragmentWrapper);
+
+                if (index < allFragmentsHTML.length - 1) {
+                    const hr = document.createElement('hr');
+                    hr.className = 'my-4 border-slate-200 dark:border-slate-700';
+                    previewContainer.appendChild(hr);
+                }
             });
+
+            const assistantText = assistantContent.value.trim();
+            if (assistantText) {
+                if(allFragmentsPlainText.some(t => t.length > 0)) {
+                     previewContainer.appendChild(document.createElement('br'));
+                }
+                const escapedContent = assistantText.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+                const assistantDiv = document.createElement('div');
+                assistantDiv.innerHTML = escapedContent.replace(/\n/g, '<br>');
+                previewContainer.appendChild(assistantDiv);
+                allFragmentsPlainText.push(assistantText);
+            }
+            
+            previewContainer.dataset.plainText = allFragmentsPlainText.join('\n\n').trim();
+        }
+        
+        assistantContent.oninput = updateCombinedOutput;
+
+        toggleAssistantBtn.onclick = () => {
+            const version = getSelectedVersion();
+            if (version) {
+                version.isAssistantVisible = !version.isAssistantVisible;
+                assistantWrapper.classList.toggle('hidden', !version.isAssistantVisible);
+                toggleAssistantBtn.classList.toggle('rotate-180', !version.isAssistantVisible);
+                saveData();
+            }
         };
-        copyBtn1.onclick = () => copyToClipboard(copyBtn1);
-        copyBtn2.onclick = () => copyToClipboard(copyBtn2);
 
+        const handleSave = () => {
+            const prompt = getSelectedPrompt();
+            if(!prompt) return;
+            
+            prompt.updatedAt = Date.now();
 
-        // Import / Export
-        exportBtn.onclick = () => {
-            const dataStr = JSON.stringify(state, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `prompt-manager-backup-${new Date().toISOString().slice(0,10)}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            if (prompt.type === 'simple') {
+                const version = getSelectedVersion();
+                if (version) {
+                    version.content = promptEditor.root.innerHTML;
+                    version.assistantContent = assistantContent.value;
+                    version.updatedAt = prompt.updatedAt;
+                }
+            } else if (prompt.type === 'chain') {
+                prompt.steps.forEach(step => {
+                    const quillInstance = chainQuillInstances.get(step.id);
+                    if (quillInstance) {
+                        step.content = quillInstance.root.innerHTML;
+                    }
+                });
+            }
+            
+            if (saveData()) {
+                showToast("Zapisano pomyślnie!");
+                renderAll();
+            }
         };
 
+        const handleCopy = () => {
+            const previewEl = editorView.querySelector('#combined-output-preview');
+            const textToCopy = previewEl ? previewEl.dataset.plainText : '';
+            if (!textToCopy) {
+                showToast("Brak treści do skopiowania", "error");
+                return;
+            }
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showToast("Skopiowano do schowka!");
+            }).catch(err => { console.error('Could not copy text: ', err); showToast("Błąd kopiowania", "error"); });
+        };
+        
+        // NOWA FUNKCJA: Obsługa generowania przez API
+        const handleGenerate = async () => {
+            const previewEl = editorView.querySelector('#combined-output-preview');
+            const promptText = previewEl ? previewEl.dataset.plainText : '';
+
+            if (!promptText) {
+                showToast("Prompt jest pusty!", "error");
+                return;
+            }
+
+            aiResponseSpinner.classList.remove('hidden');
+            aiResponseContent.textContent = '';
+            
+            let chatHistory = [{ role: "user", parts: [{ text: promptText }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // Klucz API zostanie automatycznie wstawiony przez środowisko
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Błąd API: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    aiResponseContent.innerText = text;
+                } else {
+                    throw new Error("Otrzymano nieprawidłową odpowiedź z API.");
+                }
+            } catch (error) {
+                console.error("Błąd podczas wywołania API Gemini:", error);
+                aiResponseContent.textContent = `Wystąpił błąd: ${error.message}`;
+                showToast("Błąd generowania", "error");
+            } finally {
+                aiResponseSpinner.classList.add('hidden');
+            }
+        };
+
+        fabSave.onclick = handleSave;
+        fabCopy.onclick = handleCopy;
+        fabGenerate.onclick = handleGenerate;
+        
+        exportBtn.onclick = () => { const dataStr = JSON.stringify(state, null, 2); const dataBlob = new Blob([dataStr], {type: 'application/json'}); const url = URL.createObjectURL(dataBlob); const link = document.createElement('a'); link.href = url; link.download = `prompt-manager-backup-${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); };
         importBtn.onclick = () => importFile.click();
         importFile.onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (event) => {
                 try {
                     const importedState = JSON.parse(event.target.result);
                     if (importedState && Array.isArray(importedState.projects)) {
-                        showConfirmation(
-                            'Importować dane?', 
-                            'Spowoduje to nadpisanie wszystkich obecnych projektów i promptów. Kontynuować?',
-                            () => {
-                                state = importedState;
-                                if (!state.snippets) state.snippets = [];
-                                state.selectedProjectId = null;
-                                state.selectedPromptId = null;
-                                state.selectedVersionId = null;
-                                saveData();
-                                renderAll();
-                                alert('Dane zostały pomyślnie zaimportowane.');
-                            }
-                        );
-                    } else {
-                        throw new Error('Invalid file format');
-                    }
-                } catch (err) {
-                    console.error('Error importing file:', err);
-                    alert('Błąd podczas importu pliku. Upewnij się, że plik jest poprawnym plikiem JSON z tego menedżera.');
-                } finally {
-                    importFile.value = '';
-                }
+                        showConfirmation('Importować dane?', 'Spowoduje to nadpisanie wszystkich obecnych projektów i promptów. Kontynuować?', () => {
+                            state = importedState;
+                            if (!state.snippets) state.snippets = [];
+                            state.selectedProjectId = null; state.selectedPromptId = null; state.selectedVersionId = null;
+                            saveData(); renderAll(); showToast('Dane zaimportowano!');
+                        }, 'Importuj');
+                    } else { throw new Error('Invalid file format'); }
+                } catch (err) { console.error('Error importing file:', err); showToast('Błąd podczas importu pliku.', 'error'); } 
+                finally { importFile.value = ''; }
             };
             reader.readAsText(file);
         };
         
-        // Confirmation Modal
-        const showConfirmation = (title, text, callback) => {
-            modalTitle.textContent = title;
-            modalText.textContent = text;
-            confirmationCallback = callback;
-            confirmationModal.classList.remove('hidden');
+        const showConfirmation = (title, text, callback, confirmText = 'Usuń') => { 
+            modalTitle.textContent = title; 
+            modalText.textContent = text; 
+            modalConfirm.textContent = confirmText;
+            confirmationCallback = callback; 
+            confirmationModal.classList.remove('hidden'); 
         };
-
-        modalConfirm.onclick = () => {
-            if (confirmationCallback) {
-                confirmationCallback();
-            }
-            confirmationModal.classList.add('hidden');
-            confirmationCallback = null;
-        };
-
-        modalCancel.onclick = () => {
-            confirmationModal.classList.add('hidden');
-            confirmationCallback = null;
-        };
+        modalConfirm.onclick = () => { if (confirmationCallback) { confirmationCallback(); } confirmationModal.classList.add('hidden'); confirmationCallback = null; };
+        modalCancel.onclick = () => { confirmationModal.classList.add('hidden'); confirmationCallback = null; };
         
-        // Drag and Drop
         let draggedItem = null;
+        let placeholder = null;
+
+        const createDragPlaceholder = () => {
+            const p = document.createElement('li');
+            p.className = 'drag-over-placeholder';
+            return p;
+        };
 
         const handleDragStart = (e) => {
             draggedItem = e.target;
             setTimeout(() => {
-                e.target.classList.add('dragging');
+                draggedItem.classList.add('dragging');
             }, 0);
         };
 
         const handleDragEnd = (e) => {
-            e.target.classList.remove('dragging');
-            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            if (draggedItem) {
+                draggedItem.classList.remove('dragging');
+            }
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+            }
+            placeholder = null;
             draggedItem = null;
         };
 
         const handleDragOver = (e) => {
             e.preventDefault();
-            const target = e.target.closest('li');
-            if (target && draggedItem && target.dataset.type === draggedItem.dataset.type) {
-                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-                target.classList.add('drag-over');
+            const targetList = e.target.closest('ul, #favorites-container');
+            if (!targetList) return;
+            
+            const target = e.target.closest('li, div[data-prompt-id]');
+            if (target && draggedItem && target !== draggedItem) {
+                if (!placeholder) {
+                    placeholder = createDragPlaceholder();
+                }
+                const rect = target.getBoundingClientRect();
+                const isAfter = e.clientY > rect.top + rect.height / 2;
+                
+                if (isAfter) {
+                    target.parentNode.insertBefore(placeholder, target.nextSibling);
+                } else {
+                    target.parentNode.insertBefore(placeholder, target);
+                }
             }
         };
 
         const handleDrop = (e) => {
             e.preventDefault();
-            const dropTarget = e.target.closest('li');
-            if (!dropTarget || !draggedItem || dropTarget.dataset.type !== draggedItem.dataset.type) {
+            if (!draggedItem || !placeholder || !placeholder.parentNode) {
+                handleDragEnd();
                 return;
             }
 
-            const type = draggedItem.dataset.type;
-            const draggedId = draggedItem.dataset.id;
-            const targetId = dropTarget.dataset.id;
+            const targetList = placeholder.parentNode;
+            const type = draggedItem.dataset.type || 'favorite';
+            
+            targetList.insertBefore(draggedItem, placeholder);
+            
+            const children = Array.from(targetList.children).filter(child => child !== placeholder);
+            let listToUpdate;
 
-            let list;
-            if (type === 'project') {
-                list = state.projects;
-            } else if (type === 'prompt') {
-                const project = getSelectedProject();
-                if (project) list = project.prompts;
-            } else if (type === 'version') {
-                const prompt = getSelectedPrompt();
-                if(prompt) list = prompt.versions;
+            if (type === 'project') listToUpdate = state.projects;
+            else if (type === 'prompt') listToUpdate = getSelectedProject()?.prompts;
+            else if (type === 'version') listToUpdate = getSelectedPrompt()?.versions;
+            else if (type === 'favorite') {
+                const allFavorites = [];
+                state.projects.forEach(p => p.prompts.forEach(pr => {
+                    if (pr.isFavorite) allFavorites.push(pr);
+                }));
+                listToUpdate = allFavorites;
             }
-
-            if (!list) return;
-
-            const draggedIndex = list.findIndex(item => item.id === draggedId);
-            const targetIndex = list.findIndex(item => item.id === targetId);
-
-            if (draggedIndex !== -1 && targetIndex !== -1) {
-                const [removed] = list.splice(draggedIndex, 1);
-                list.splice(targetIndex, 0, removed);
-
+            
+            if (listToUpdate) {
+                const newOrderIds = children.map(child => child.dataset.id || child.dataset.promptId);
+                
+                if(type === 'favorite') {
+                    newOrderIds.forEach((promptId, index) => {
+                        const prompt = listToUpdate.find(p => p.id === promptId);
+                        if(prompt) prompt.favoriteOrder = index;
+                    });
+                } else {
+                    listToUpdate.sort((a, b) => newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id));
+                }
                 saveData();
-                if (type === 'project') renderProjects();
-                if (type === 'prompt') renderPrompts();
-                if (type === 'version') renderVersions();
             }
+
+            handleDragEnd();
+            if (type === 'favorite') renderFavoritesBar();
         };
 
-        projectsList.addEventListener('dragstart', handleDragStart);
-        projectsList.addEventListener('dragend', handleDragEnd);
-        projectsList.addEventListener('dragover', handleDragOver);
-        projectsList.addEventListener('drop', handleDrop);
+        [projectsList, promptsList, versionsList, favoritesContainer].forEach(list => {
+             list.addEventListener('dragstart', handleDragStart);
+             list.addEventListener('dragend', handleDragEnd);
+             list.addEventListener('dragover', handleDragOver);
+             list.addEventListener('drop', handleDrop);
+        });
 
-        promptsList.addEventListener('dragstart', handleDragStart);
-        promptsList.addEventListener('dragend', handleDragEnd);
-        promptsList.addEventListener('dragover', handleDragOver);
-        promptsList.addEventListener('drop', handleDrop);
-        
-        versionsList.addEventListener('dragstart', handleDragStart);
-        versionsList.addEventListener('dragend', handleDragEnd);
-        versionsList.addEventListener('dragover', handleDragOver);
-        versionsList.addEventListener('drop', handleDrop);
+        projectSearch.oninput = renderProjects;
+        promptSearch.oninput = renderPrompts;
+        versionSearch.oninput = renderVersions;
 
-        // Snippet Event Listeners
-        manageSnippetsBtn.onclick = () => {
-            resetSnippetForm();
-            renderSnippetsInModal();
-            snippetModal.classList.remove('hidden');
-        };
+        manageSnippetsBtn.onclick = () => { resetSnippetForm(); renderSnippetsInModal(); snippetModal.classList.remove('hidden'); };
         closeSnippetModalBtn.onclick = () => snippetModal.classList.add('hidden');
         saveSnippetBtn.onclick = handleSaveSnippet;
         clearSnippetFormBtn.onclick = resetSnippetForm;
+        snippetsListModal.addEventListener('click', (e) => { if (e.target.closest('.edit-snippet-btn')) { handleEditSnippet(e.target.closest('.edit-snippet-btn').dataset.id); } if (e.target.closest('.delete-snippet-btn')) { handleDeleteSnippet(e.target.closest('.delete-snippet-btn').dataset.id); } });
+        insertSnippetBtn.onclick = (e) => {
+            const bounds = e.target.getBoundingClientRect();
+            showSnippetDropdown(bounds);
+        };
 
-        snippetsListModal.addEventListener('click', (e) => {
-            if (e.target.closest('.edit-snippet-btn')) {
-                handleEditSnippet(e.target.closest('.edit-snippet-btn').dataset.id);
+        const handleExitFullscreen = () => {
+            const overlay = document.getElementById('fullscreen-overlay');
+            if (overlay) {
+                promptContentContainer.querySelector('.overflow-y-auto').style.overflow = '';
+                originalEditorParent.appendChild(promptContentContainer);
+                overlay.remove();
+                document.body.style.overflow = '';
             }
-            if (e.target.closest('.delete-snippet-btn')) {
-                handleDeleteSnippet(e.target.closest('.delete-snippet-btn').dataset.id);
-            }
+        };
+
+        toggleFullscreenBtn.onclick = () => {
+            const overlay = document.createElement('div');
+            overlay.id = 'fullscreen-overlay';
+            overlay.onclick = (e) => { if(e.target === overlay) handleExitFullscreen(); };
+
+            const windowDiv = document.createElement('div');
+            windowDiv.id = 'fullscreen-window';
+
+            const bar = document.createElement('div');
+            bar.id = 'fullscreen-bar';
+            bar.innerHTML = `<h3 class="font-semibold">Tryb pełnoekranowy</h3>`;
+
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
+            closeBtn.className = 'text-slate-500 hover:text-slate-800 dark:hover:text-white';
+            closeBtn.onclick = handleExitFullscreen;
+            bar.appendChild(closeBtn);
+            
+            windowDiv.appendChild(bar);
+            windowDiv.appendChild(promptContentContainer);
+            overlay.appendChild(windowDiv);
+            document.body.appendChild(overlay);
+            promptContentContainer.querySelector('.overflow-y-auto').style.overflow = 'auto';
+            document.body.style.overflow = 'hidden';
+        };
+
+        const templateLibrary = [ { id: 'tpl_email_marketing', name: 'Email Marketingowy - Zimny Mailing', description: 'Szablon do tworzenia spersonalizowanych, zimnych maili sprzedażowych, które skutecznie przyciągają uwagę potencjalnych klientów.', content: '<p>Cześć [imię_odbiorcy],</p><p>Nazywam się [twoje_imię] i pracuję w [twoja_firma]. Zauważyłem, że [obserwacja_o_firmie_odbiorcy].</p><p>W [twoja_firma] pomagamy firmom takim jak Twoja w [rozwiązanie_problemu]. Pomyślałem, że może to być dla Ciebie interesujące, ponieważ [korzyść_dla_odbiorcy].</p><p>Czy byłbyś otwarty na krótką, 15-minutową rozmowę w przyszłym tygodniu, aby omówić, jak możemy pomóc [nazwa_firmy_odbiorcy]?</p><p>Pozdrawiam,<br>[twoje_imię]</p>' }, { id: 'tpl_blog_post', name: 'Struktura Wpisu na Bloga', description: 'Kompletny szablon do tworzenia angażujących i dobrze zorganizowanych artykułów na bloga, zoptymalizowanych pod SEO.', content: '<h1>[Tytuł Artykułu]</h1><p><strong>Wstęp:</strong> [Krótkie wprowadzenie, które przyciąga uwagę i przedstawia problem/temat]</p><h2>[Nagłówek H2 - Pierwszy Punkt]</h2><p>[Rozwinięcie pierwszego punktu, dostarczenie wartościowych informacji]</p><h2>[Nagłówek H2 - Drugi Punkt]</h2><p>[Rozwinięcie drugiego punktu, przykłady, dane]</p><h2>[Nagłówek H2 - Trzeci Punkt]</h2><p>[Rozwinięcie trzeciego punktu, analiza, case study]</p><p><strong>Podsumowanie:</strong> [Krótkie podsumowanie kluczowych wniosków i wezwanie do działania (CTA), np. zostawienie komentarza, zapis na newsletter]</p>' }, { id: 'tpl_product_description', name: 'Opis Produktu e-Commerce', description: 'Szablon skoncentrowany na korzyściach, który pomaga tworzyć przekonujące opisy produktów do sklepów internetowych.', content: '<p><strong>Nazwa Produktu:</strong> [Nazwa Produktu]</p><p><strong>Krótki opis (hook):</strong> [Jedno zdanie, które idealnie opisuje produkt i jego główną zaletę]</p><p><strong>Dla kogo jest ten produkt?</strong><br>Idealny dla [grupa_docelowa], którzy borykają się z [problem_klienta].</p><p><strong>Co zyskujesz?</strong></p><ul><li><strong>[Korzyść 1]:</strong> [Opis, jak ta korzyść ułatwia życie klienta]</li><li><strong>[Korzyść 2]:</strong> [Opis, jak ta korzyść oszczędza czas/pieniądze]</li><li><strong>[Korzyść 3]:</strong> [Opis, jak ta korzyść poprawia jakość/wyniki]</li></ul><p><strong>Specyfikacja:</strong></p><ul><li>Materiał: [Materiał]</li><li>Wymiary: [Wymiary]</li><li>Kolor: [Kolor]</li></ul>' } ];
+        const renderTemplateLibrary = () => { templateList.innerHTML = ''; templateLibrary.forEach(template => { const div = document.createElement('div'); div.className = 'p-4 border rounded-lg dark:border-slate-700 flex flex-col md:flex-row items-start gap-4'; div.innerHTML = `<div class="flex-grow"><h3 class="font-semibold text-lg">${template.name}</h3><p class="text-sm text-slate-500 mt-1">${template.description}</p></div><button data-id="${template.id}" class="import-template-btn mt-2 md:mt-0 flex-shrink-0 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Importuj</button>`; templateList.appendChild(div); }); };
+        templateList.addEventListener('click', (e) => { if (e.target.classList.contains('import-template-btn')) { const templateId = e.target.dataset.id; const template = templateLibrary.find(t => t.id === templateId); if (template) { const newProjectName = prompt("Podaj nazwę dla nowego projektu, do którego zaimportowany zostanie szablon:", `Projekt z szablonu: ${template.name}`); if (newProjectName) { const newProject = { id: generateId(), name: newProjectName.trim(), prompts: [] }; const now = Date.now(); const newPrompt = { id: generateId(), type: 'simple', name: template.name, versions: [], isFavorite: false, createdAt: now, updatedAt: now }; const newVersion = { id: generateId(), name: 'Wersja 1', content: template.content, status: 'experimental', createdAt: now, updatedAt: now, isAssistantVisible: false, assistantContent: '' }; newPrompt.versions.push(newVersion); newProject.prompts.push(newPrompt); state.projects.unshift(newProject); saveData(); showToast("Szablon zaimportowany pomyślnie!"); templateLibraryModal.classList.add('hidden'); selectProject(newProject.id); } } } });
+        templateLibraryBtn.onclick = () => { renderTemplateLibrary(); templateLibraryModal.classList.remove('hidden'); };
+        closeTemplateLibraryModalBtn.onclick = () => templateLibraryModal.classList.add('hidden');
+
+        document.body.addEventListener('mouseover', e => { const target = e.target.closest('[data-tooltip]'); if (target) { globalTooltip.textContent = target.dataset.tooltip; globalTooltip.classList.remove('hidden'); const targetRect = target.getBoundingClientRect(); const top = targetRect.top - globalTooltip.offsetHeight - 5; const left = targetRect.left + (targetRect.width / 2) - (globalTooltip.offsetWidth / 2); globalTooltip.style.left = `${left}px`; globalTooltip.style.top = `${top < 0 ? targetRect.bottom + 5 : top}px`; globalTooltip.style.opacity = 1; } });
+        document.body.addEventListener('mouseout', e => { const target = e.target.closest('[data-tooltip]'); if (target) { globalTooltip.style.opacity = 0; globalTooltip.classList.add('hidden'); } });
+        document.addEventListener('click', (e) => { if (!snippetDropdown.contains(e.target) && !e.target.closest('#insert-snippet-btn')) { snippetDropdown.classList.add('hidden'); } if (!colorOptionsContainer.contains(e.target) && !e.target.closest('#color-palette-btn')) { colorOptionsContainer.style.display = 'none'; } });
+        
+        window.addEventListener('scroll', () => snippetDropdown.classList.add('hidden'), true);
+        window.addEventListener('resize', () => { snippetDropdown.classList.add('hidden'); updateSidebarTop(); updateFavoritesScrolling(); });
+        
+        favLeftBtn.onclick = () => { favoritesContainer.scrollBy({ left: -favoritesContainer.clientWidth * 0.8, behavior: 'smooth' }); };
+        favRightBtn.onclick = () => { favoritesContainer.scrollBy({ left: favoritesContainer.clientWidth * 0.8, behavior: 'smooth' }); };
+        favoritesContainer.addEventListener('scroll', updateFavoritesScrolling);
+
+        // --- THEME & PERSONALIZATION ---
+        const applyTheme = (theme) => { if (theme === 'dark') { document.documentElement.classList.add('dark'); themeIconLight.classList.add('hidden'); themeIconDark.classList.remove('hidden'); } else { document.documentElement.classList.remove('dark'); themeIconLight.classList.remove('hidden'); themeIconDark.classList.add('hidden'); } };
+        themeToggleBtn.onclick = () => { const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark'; localStorage.setItem('theme', newTheme); applyTheme(newTheme); };
+        
+        const applyEditorFontSize = (size) => { document.documentElement.style.setProperty('--editor-font-size', `${size}rem`); };
+        const changeEditorFontSize = (delta) => { let size = parseFloat(localStorage.getItem('editorFontSize') || '1'); size = Math.max(0.7, Math.min(1.5, size + delta)); localStorage.setItem('editorFontSize', size); applyEditorFontSize(size); };
+        fontSizeUpBtn.onclick = () => changeEditorFontSize(0.05);
+        fontSizeDownBtn.onclick = () => changeEditorFontSize(-0.05);
+        
+        const applyFontFamily = (fontFamily) => { document.documentElement.style.setProperty('--editor-font-family', fontFamily); };
+        fontFamilySelect.onchange = () => { const newFont = fontFamilySelect.value; localStorage.setItem('fontFamily', newFont); applyFontFamily(newFont); };
+
+        const colorThemes = {
+            indigo: { 50: "238, 242, 255", 100: "224, 231, 255", 200: "199, 210, 254", 500: "99, 102, 241", 600: "79, 70, 229", 800: "55, 48, 163", 950: "30, 27, 75" },
+            sky: { 50: "240, 249, 255", 100: "224, 242, 254", 200: "186, 230, 253", 500: "14, 165, 233", 600: "2, 132, 199", 800: "7, 89, 133", 950: "8, 51, 68" },
+            emerald: { 50: "236, 253, 245", 100: "209, 250, 229", 200: "167, 243, 208", 500: "16, 185, 129", 600: "5, 150, 105", 800: "6, 95, 70", 950: "4, 47, 46" },
+            rose: { 50: "255, 241, 242", 100: "255, 228, 230", 200: "254, 205, 211", 500: "244, 63, 94", 600: "225, 29, 72", 800: "159, 18, 57", 950: "76, 5, 25" },
+            amber: { 50: "255, 251, 235", 100: "254, 243, 199", 200: "253, 230, 138", 500: "245, 158, 11", 600: "217, 119, 6", 800: "146, 64, 14", 950: "70, 29, 4" },
+            teal: { 50: "240, 252, 252", 100: "204, 251, 241", 200: "153, 246, 228", 500: "20, 184, 166", 600: "13, 148, 136", 800: "15, 118, 110", 950: "4, 51, 51" }
+        };
+
+        const applyAccentColor = (colorName) => {
+            const theme = colorThemes[colorName];
+            if (!theme) return;
+            Object.keys(theme).forEach(key => {
+                document.documentElement.style.setProperty(`--accent-${key}`, theme[key]);
+            });
+            localStorage.setItem('accentColor', colorName);
+            document.querySelectorAll('.color-swatch').forEach(sw => {
+                sw.classList.toggle('selected', sw.dataset.color === colorName);
+            });
+        };
+
+        colorPaletteBtn.onclick = () => {
+            const options = colorOptionsContainer;
+            options.style.display = options.style.display === 'flex' ? 'none' : 'flex';
+        };
+
+        Object.keys(colorThemes).forEach(colorName => {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.dataset.color = colorName;
+            swatch.style.backgroundColor = `rgb(${colorThemes[colorName][500]})`;
+            swatch.onclick = () => applyAccentColor(colorName);
+            colorOptionsContainer.appendChild(swatch);
         });
 
-        insertSnippetBtn.onclick = () => {
-            renderSnippetDropdown();
-            snippetDropdown.classList.toggle('hidden');
-        };
-
-        // Hide dropdown if clicked outside
-        document.addEventListener('click', (e) => {
-            if (!insertSnippetBtn.contains(e.target) && !snippetDropdown.contains(e.target)) {
-                snippetDropdown.classList.add('hidden');
-            }
-        });
-        
-        // Theme & Font Size Logic
-        const applyTheme = (theme) => {
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-                themeIconLight.classList.add('hidden');
-                themeIconDark.classList.remove('hidden');
-            } else {
-                document.documentElement.classList.remove('dark');
-                themeIconLight.classList.remove('hidden');
-                themeIconDark.classList.add('hidden');
-            }
-        };
-
-        themeToggleBtn.onclick = () => {
-            const isDark = document.documentElement.classList.contains('dark');
-            const newTheme = isDark ? 'light' : 'dark';
-            localStorage.setItem('theme', newTheme);
-            applyTheme(newTheme);
-        };
-        
-        const applyFontSize = (size) => {
-            document.documentElement.style.fontSize = `${size}%`;
-        };
-
-        const changeFontSize = (delta) => {
-            let currentSize = parseInt(localStorage.getItem('fontSize') || '85');
-            currentSize += delta;
-            if (currentSize < 50) currentSize = 50; // min size
-            if (currentSize > 150) currentSize = 150; // max size
-            localStorage.setItem('fontSize', currentSize);
-            applyFontSize(currentSize);
-        };
-        
-        fontSizeUpBtn.onclick = () => changeFontSize(1);
-        fontSizeDownBtn.onclick = () => changeFontSize(-1);
-
-        // --- INITIALIZATION ---
+        // --- INITIALIZATION --- 
         const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (savedTheme) {
-            applyTheme(savedTheme);
-        } else if (systemPrefersDark) {
-            applyTheme('dark');
-        } else {
-            applyTheme('light');
-        }
+        if (savedTheme) { applyTheme(savedTheme); } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) { applyTheme('dark'); } else { applyTheme('light'); }
         
-        const savedFontSize = localStorage.getItem('fontSize');
-        if (savedFontSize) {
-            applyFontSize(savedFontSize);
-        }
+        const savedEditorFontSize = localStorage.getItem('editorFontSize');
+        if (savedEditorFontSize) { applyEditorFontSize(savedEditorFontSize); }
+
+        const savedFontFamily = localStorage.getItem('fontFamily');
+        if (savedFontFamily) { fontFamilySelect.value = savedFontFamily; applyFontFamily(savedFontFamily); }
+
+        const savedAccentColor = localStorage.getItem('accentColor') || 'indigo';
+        applyAccentColor(savedAccentColor);
 
         loadData();
         renderAll();
+        updateSidebarTop();
     });
     </script>
 </body>
+
 </html>
