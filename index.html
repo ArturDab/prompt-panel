@@ -598,9 +598,15 @@
         .dark #left-sidebar .text-slate-500 { color: #94a3b8 !important; } /* slate-400 */
         .dark #left-sidebar .text-slate-400 { color: #94a3b8 !important; } /* slate-400 */
 
-        /* Tree item names */
+        /* Tree item names - CRITICAL for visibility */
         .dark #left-sidebar .tree-item-name {
             color: #f1f5f9 !important; /* slate-100 - highest contrast */
+        }
+        .dark #left-sidebar .tree-item-project .tree-item-name {
+            color: #f1f5f9 !important; /* slate-100 - project names bright white */
+        }
+        .dark #left-sidebar .tree-item-prompt .tree-item-name {
+            color: #e2e8f0 !important; /* slate-200 - prompt names slightly dimmer but still high contrast */
         }
 
         /* Tree actions buttons */
@@ -1535,7 +1541,7 @@
     color: #0f172a;
     letter-spacing: -0.02em;
 }
-.dark .tree-item-project .tree-item-name { color: #f8fafc; }
+.dark .tree-item-project .tree-item-name { color: #f1f5f9 !important; } /* slate-100 - bright white for maximum contrast */
 
 /* Prompt: mniejszy rozmiar i normalna waga */
 .tree-item-prompt .tree-item-name {
@@ -1544,7 +1550,7 @@
     color: #475569;
     letter-spacing: -0.01em;
 }
-.dark .tree-item-prompt .tree-item-name { color: #cbd5e1; }
+.dark .tree-item-prompt .tree-item-name { color: #e2e8f0 !important; } /* slate-200 - very bright for high contrast */
 
 @keyframes newProjectPulse {
     0% { 
