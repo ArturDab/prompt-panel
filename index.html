@@ -562,29 +562,82 @@
         /* WCAG AA - Final Polish: Tree, Info Box, Preview / Finalne Poprawki
         /* -------------------------------------------------- */
 
-        /* Left Sidebar Tree - Enhanced text colors */
-        .dark #left-sidebar .tree-item-name { color: #f1f5f9; } /* slate-100 - highest contrast */
-        .dark #left-sidebar .text-slate-600 { color: #cbd5e1; } /* slate-300 */
-        .dark #left-sidebar .text-slate-500 { color: #94a3b8; } /* slate-400 */
+        /* ================================================== */
+        /* LEFT SIDEBAR - DARK MODE COMPLETE OVERHAUL
+        /* ================================================== */
+
+        /* Main container - MUST be visible! */
+        .dark #left-sidebar .bg-white {
+            background-color: #334155 !important; /* slate-700 - clearly visible against slate-950 body */
+            border-color: #64748b !important; /* slate-500 - strong border */
+            box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.3), 0 10px 20px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        /* Search input */
+        .dark #left-sidebar .bg-slate-50 {
+            background-color: #1e293b !important; /* slate-800 - darker than container */
+            color: #f1f5f9 !important; /* slate-100 */
+        }
+        .dark #left-sidebar .border-slate-200 {
+            border-color: #475569 !important; /* slate-600 */
+        }
+        .dark #left-sidebar .placeholder-slate-400::placeholder {
+            color: #94a3b8 !important; /* slate-400 */
+        }
+
+        /* Sort dropdown */
+        .dark #left-sidebar .bg-slate-100 {
+            background-color: #1e293b !important; /* slate-800 */
+            color: #f1f5f9 !important; /* slate-100 */
+            border-color: #475569 !important; /* slate-600 */
+        }
+
+        /* Text colors in sidebar */
+        .dark #left-sidebar .text-slate-800 { color: #f1f5f9 !important; } /* slate-100 */
+        .dark #left-sidebar .text-slate-600 { color: #cbd5e1 !important; } /* slate-300 */
+        .dark #left-sidebar .text-slate-500 { color: #94a3b8 !important; } /* slate-400 */
+        .dark #left-sidebar .text-slate-400 { color: #94a3b8 !important; } /* slate-400 */
+
+        /* Tree item names */
+        .dark #left-sidebar .tree-item-name {
+            color: #f1f5f9 !important; /* slate-100 - highest contrast */
+        }
 
         /* Tree actions buttons */
-        .dark .tree-actions button { color: #94a3b8; } /* slate-400 - good contrast */
-        .dark .tree-actions button:hover { color: #cbd5e1; } /* slate-300 on hover */
-
-        /* Project block borders */
-        .dark .project-block {
-            border-color: rgba(100, 116, 139, 0.5); /* slate-500 - more visible */
+        .dark #left-sidebar .tree-actions button {
+            color: #94a3b8 !important; /* slate-400 */
+        }
+        .dark #left-sidebar .tree-actions button:hover {
+            color: #cbd5e1 !important; /* slate-300 */
         }
 
-        .dark .project-block .tree-item-content:not(.selected):hover {
-            background-color: rgba(51, 65, 85, 0.6); /* slate-700 - better than 15,23,42 */
+        /* Project blocks */
+        .dark #left-sidebar .project-block {
+            border-color: rgba(100, 116, 139, 0.5) !important; /* slate-500 */
         }
 
-        /* Left Sidebar Container - CRITICAL: Make visible in dark mode */
-        .dark #left-sidebar > .bg-white {
-            background-color: #334155 !important; /* slate-700 - much lighter than slate-950 body */
-            border-color: rgba(148, 163, 184, 0.5) !important; /* slate-400 - strong visible border */
-            box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.3), 0 4px 6px -1px rgba(0, 0, 0, 0.4) !important;
+        /* Tree item hover states */
+        .dark #left-sidebar .tree-item-content:not(.selected):hover {
+            background-color: rgba(30, 41, 59, 0.6) !important; /* slate-800 with opacity */
+        }
+
+        /* Workspace controls at bottom */
+        .dark #left-sidebar .border-slate-200\/60 {
+            border-color: rgba(100, 116, 139, 0.4) !important; /* slate-500 with opacity */
+        }
+
+        /* Workspace buttons */
+        .dark #left-sidebar .workspace-btn {
+            background-color: #1e293b !important; /* slate-800 */
+            color: #cbd5e1 !important; /* slate-300 */
+            border-color: #475569 !important; /* slate-600 */
+        }
+        .dark #left-sidebar .workspace-btn.active {
+            background-color: rgba(var(--accent-600), 0.8) !important;
+            color: #f1f5f9 !important; /* slate-100 */
+        }
+        .dark #left-sidebar .workspace-btn:hover:not(.active) {
+            background-color: #475569 !important; /* slate-600 */
         }
 
         /* "Dodatkowe informacje (kontekst)" section - Enhanced green colors */
