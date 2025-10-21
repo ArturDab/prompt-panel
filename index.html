@@ -559,6 +559,75 @@
         .dark .bg-accent-100 { background-color: rgba(var(--accent-900), 0.5); }
 
         /* -------------------------------------------------- */
+        /* WCAG AA - Final Polish: Tree, Info Box, Preview / Finalne Poprawki
+        /* -------------------------------------------------- */
+
+        /* Left Sidebar Tree - Enhanced text colors */
+        .dark #left-sidebar .tree-item-name { color: #f1f5f9; } /* slate-100 - highest contrast */
+        .dark #left-sidebar .text-slate-600 { color: #cbd5e1; } /* slate-300 */
+        .dark #left-sidebar .text-slate-500 { color: #94a3b8; } /* slate-400 */
+
+        /* Tree actions buttons */
+        .dark .tree-actions button { color: #94a3b8; } /* slate-400 - good contrast */
+        .dark .tree-actions button:hover { color: #cbd5e1; } /* slate-300 on hover */
+
+        /* Project block borders */
+        .dark .project-block {
+            border-color: rgba(100, 116, 139, 0.5); /* slate-500 - more visible */
+        }
+
+        .dark .project-block .tree-item-content:not(.selected):hover {
+            background-color: rgba(51, 65, 85, 0.6); /* slate-700 - better than 15,23,42 */
+        }
+
+        /* "Dodatkowe informacje (kontekst)" section - Enhanced green colors */
+        .dark .text-green-800 { color: #86efac; } /* green-300 - 6.8:1 contrast instead of green-200 */
+        .dark .text-green-600 { color: #86efac; } /* green-300 - consistent */
+        .dark .text-green-400 { color: #86efac; } /* green-300 - consistent */
+        .dark .hover\:text-green-800:hover { color: #bbf7d0; } /* green-200 on hover - brighter */
+        .dark .hover\:text-green-200:hover { color: #dcfce7; } /* green-100 on hover - even brighter */
+
+        /* Green borders and placeholders */
+        .dark .border-green-300 { border-color: rgba(134, 239, 172, 0.4); } /* green-300 with opacity */
+        .dark .border-green-700 { border-color: rgba(21, 128, 61, 0.6); } /* green-700 with opacity */
+        .dark .placeholder-green-500::placeholder { color: rgba(134, 239, 172, 0.5); } /* green-300 */
+        .dark .placeholder-green-400::placeholder { color: rgba(134, 239, 172, 0.5); } /* green-300 */
+
+        /* "Podgląd końcowego promptu" section - Enhanced */
+        .dark #combined-output-preview {
+            background-color: #0f172a; /* slate-950 - deeper for better contrast with content */
+            border-color: rgba(100, 116, 139, 0.6); /* slate-500 - more visible border */
+            color: #f1f5f9; /* slate-100 - ensure text is readable */
+        }
+
+        /* Preview placeholder text */
+        .dark #combined-output-preview .text-slate-400 {
+            color: #94a3b8; /* slate-400 - already good */
+        }
+
+        /* Copy buttons in preview section */
+        .dark #copy-plain-text-btn {
+            color: #cbd5e1; /* slate-300 */
+            border-color: rgba(100, 116, 139, 0.5);
+        }
+        .dark #copy-plain-text-btn:hover {
+            color: #f1f5f9; /* slate-100 on hover */
+            background-color: rgba(51, 65, 85, 0.6); /* slate-700 */
+        }
+
+        /* Icons in preview description */
+        .dark .text-purple-500 { color: #d8b4fe; } /* purple-300 */
+        .dark .text-blue-500 { color: #93c5fd; } /* blue-300 */
+        .dark .text-green-500 { color: #86efac; } /* green-300 */
+
+        /* Keyboard shortcuts badges */
+        .dark .kbd {
+            background-color: rgba(71, 85, 105, 0.8); /* slate-600 */
+            color: #f1f5f9; /* slate-100 */
+            border-color: rgba(100, 116, 139, 0.6);
+        }
+
+        /* -------------------------------------------------- */
         /* 9. Layout & Responsive Styles / Układ i Style Responsywne
         /* -------------------------------------------------- */
         .favorites-wrapper { position: relative; }
