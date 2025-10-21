@@ -567,10 +567,11 @@
         /* ================================================== */
 
         /* Main container - MUST be visible! */
+        .dark #left-sidebar > .bg-white,
         .dark #left-sidebar .bg-white {
-            background-color: #334155 !important; /* slate-700 - clearly visible against slate-950 body */
-            border-color: #64748b !important; /* slate-500 - strong border */
-            box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.3), 0 10px 20px rgba(0, 0, 0, 0.5) !important;
+            background-color: #475569 !important; /* slate-600 - LIGHTER for better text contrast */
+            border-color: #94a3b8 !important; /* slate-400 - very visible border */
+            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.4), 0 10px 20px rgba(0, 0, 0, 0.6) !important;
         }
 
         /* Search input */
@@ -598,15 +599,32 @@
         .dark #left-sidebar .text-slate-500 { color: #94a3b8 !important; } /* slate-400 */
         .dark #left-sidebar .text-slate-400 { color: #94a3b8 !important; } /* slate-400 */
 
-        /* Tree item names - CRITICAL for visibility */
-        .dark #left-sidebar .tree-item-name {
-            color: #f1f5f9 !important; /* slate-100 - highest contrast */
+        /* Tree item names - CRITICAL - ALL POSSIBLE SELECTORS */
+        .dark #left-sidebar .tree-item-name,
+        .dark #left-sidebar .tree-item-project .tree-item-name,
+        .dark #left-sidebar .tree-item-content .tree-item-name,
+        .dark #left-sidebar .tree-item-content.selected .tree-item-name,
+        .dark #left-sidebar .tree-item-content:not(.selected) .tree-item-name,
+        .dark #left-sidebar .project-block .tree-item-name,
+        .dark #left-sidebar .project-block .tree-item-project .tree-item-name,
+        .dark #left-sidebar .project-block .tree-item-content .tree-item-name {
+            color: #f1f5f9 !important; /* slate-100 - MAXIMUM CONTRAST FOR PROJECTS */
         }
-        .dark #left-sidebar .tree-item-project .tree-item-name {
-            color: #f1f5f9 !important; /* slate-100 - project names bright white */
+
+        .dark #left-sidebar .tree-item-prompt .tree-item-name,
+        .dark #left-sidebar .tree-item-content.tree-item-prompt .tree-item-name,
+        .dark #left-sidebar .project-block .tree-item-prompt .tree-item-name,
+        .dark #left-sidebar .project-block .tree-item-content .tree-item-prompt .tree-item-name {
+            color: #e2e8f0 !important; /* slate-200 - HIGH CONTRAST FOR PROMPTS */
         }
-        .dark #left-sidebar .tree-item-prompt .tree-item-name {
-            color: #e2e8f0 !important; /* slate-200 - prompt names slightly dimmer but still high contrast */
+
+        /* Parent containers must not override text color */
+        .dark #left-sidebar .tree-item-details {
+            color: inherit !important;
+        }
+        .dark #left-sidebar .tree-item-content,
+        .dark #left-sidebar .tree-item-content.selected {
+            color: #f1f5f9 !important; /* Ensure children inherit bright color */
         }
 
         /* Tree actions buttons */
