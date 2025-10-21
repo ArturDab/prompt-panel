@@ -580,6 +580,13 @@
             background-color: rgba(51, 65, 85, 0.6); /* slate-700 - better than 15,23,42 */
         }
 
+        /* Left Sidebar Container - CRITICAL: Make visible in dark mode */
+        .dark #left-sidebar > .bg-white {
+            background-color: #334155 !important; /* slate-700 - much lighter than slate-950 body */
+            border-color: rgba(148, 163, 184, 0.5) !important; /* slate-400 - strong visible border */
+            box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.3), 0 4px 6px -1px rgba(0, 0, 0, 0.4) !important;
+        }
+
         /* "Dodatkowe informacje (kontekst)" section - Enhanced green colors */
         .dark .text-green-800 { color: #86efac; } /* green-300 - 6.8:1 contrast instead of green-200 */
         .dark .text-green-600 { color: #86efac; } /* green-300 - consistent */
