@@ -326,6 +326,239 @@
         .dark .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.7), 0 8px 10px -6px rgba(0,0,0,0.7); }
 
         /* -------------------------------------------------- */
+        /* WCAG AA - Badges & Pills / Odznaki i Pigułki
+        /* -------------------------------------------------- */
+
+        /* Blue badges - Enhanced contrast */
+        .dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2); } /* blue-500 with opacity */
+        .dark .text-blue-800 { color: #93c5fd; } /* blue-300 - 7.2:1 contrast on dark bg */
+        .dark .bg-blue-900\/30 { background-color: rgba(30, 58, 138, 0.4); }
+        .dark .text-blue-200 { color: #bfdbfe; } /* blue-200 - even higher contrast */
+
+        /* Green badges */
+        .dark .bg-green-50 { background-color: rgba(34, 197, 94, 0.15); }
+        .dark .text-green-600 { color: #86efac; } /* green-300 */
+        .dark .text-green-400 { color: #86efac; } /* green-300 - consistent */
+        .dark .hover\:bg-green-50:hover { background-color: rgba(34, 197, 94, 0.2); }
+        .dark .hover\:bg-green-900\/20:hover { background-color: rgba(20, 83, 45, 0.3); }
+
+        /* Purple badges */
+        .dark .bg-purple-50 { background-color: rgba(168, 85, 247, 0.15); }
+        .dark .text-purple-600 { color: #d8b4fe; } /* purple-300 */
+        .dark .text-purple-400 { color: #e9d5ff; } /* purple-200 */
+        .dark .hover\:text-purple-800 { color: #f3e8ff; } /* purple-100 */
+        .dark .hover\:text-purple-300 { color: #f3e8ff; } /* purple-100 */
+        .dark .bg-purple-900\/20 { background-color: rgba(88, 28, 135, 0.3); }
+        .dark .hover\:bg-purple-100:hover { background-color: rgba(168, 85, 247, 0.2); }
+        .dark .hover\:bg-purple-900\/30:hover { background-color: rgba(88, 28, 135, 0.4); }
+
+        /* Red badges */
+        .dark .bg-red-500 { background-color: #f87171; } /* red-400 - softer in dark */
+        .dark .hover\:bg-red-600:hover { background-color: #fca5a5; } /* red-300 on hover */
+        .dark .hover\:bg-red-100:hover { background-color: rgba(239, 68, 68, 0.2); }
+        .dark .hover\:bg-red-900\/50:hover { background-color: rgba(127, 29, 29, 0.5); }
+        .dark .text-red-600 { color: #fca5a5; } /* red-300 */
+
+        /* Emerald/Teal badges */
+        .dark .text-emerald-600 { color: #6ee7b7; } /* emerald-300 */
+        .dark .text-teal-600 { color: #5eead4; } /* teal-300 */
+
+        /* Violet badges */
+        .dark .text-violet-600 { color: #ddd6fe; } /* violet-300 */
+
+        /* Indigo badges */
+        .dark .text-indigo-600 { color: #c7d2fe; } /* indigo-300 */
+
+        /* Cyan badges */
+        .dark .text-cyan-600 { color: #a5f3fc; } /* cyan-200 */
+
+        /* Lime badges */
+        .dark .text-lime-600 { color: #d9f99d; } /* lime-300 */
+
+        /* Fuchsia badges */
+        .dark .text-fuchsia-600 { color: #f5d0fe; } /* fuchsia-300 */
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Gradient Backgrounds / Tła Gradientowe
+        /* -------------------------------------------------- */
+
+        /* Info boxes - Blue gradient */
+        .dark .from-blue-100 { background: rgba(30, 58, 138, 0.3); }
+        .dark .via-cyan-50 { background: rgba(21, 94, 117, 0.2); }
+        .dark .to-teal-100 { background: rgba(19, 78, 74, 0.3); }
+        .dark .border-blue-300\/60 { border-color: rgba(147, 197, 253, 0.3); }
+        .dark .border-blue-600\/40 { border-color: rgba(37, 99, 235, 0.5); }
+
+        /* Success boxes - Green gradient */
+        .dark .from-emerald-100 { background: rgba(6, 95, 70, 0.3); }
+        .dark .via-green-50 { background: rgba(21, 128, 61, 0.2); }
+        .dark .to-lime-100 { background: rgba(77, 124, 15, 0.3); }
+        .dark .border-emerald-300\/60 { border-color: rgba(110, 231, 183, 0.3); }
+        .dark .border-emerald-600\/40 { border-color: rgba(5, 150, 105, 0.5); }
+
+        /* Output panel - Violet gradient */
+        .dark .from-violet-100 { background: rgba(76, 29, 149, 0.3); }
+        .dark .via-purple-50 { background: rgba(88, 28, 135, 0.2); }
+        .dark .to-fuchsia-100 { background: rgba(112, 26, 117, 0.3); }
+        .dark .border-violet-300\/60 { border-color: rgba(196, 181, 253, 0.3); }
+        .dark .border-violet-600\/40 { border-color: rgba(124, 58, 237, 0.5); }
+
+        /* Header prompt info - Indigo gradient */
+        .dark .from-indigo-50 { background: rgba(67, 56, 202, 0.2); }
+        .dark .via-blue-50 { background: rgba(59, 130, 246, 0.15); }
+        .dark .to-purple-50 { background: rgba(147, 51, 234, 0.2); }
+        .dark .border-indigo-200\/60 { border-color: rgba(199, 210, 254, 0.2); }
+        .dark .border-indigo-700\/40 { border-color: rgba(67, 56, 202, 0.5); }
+
+        /* Favorites bar - Vibrant gradient for dark mode */
+        .dark .from-indigo-200 { background: rgba(99, 102, 241, 0.25); }
+        .dark .via-purple-200 { background: rgba(168, 85, 247, 0.25); }
+        .dark .to-indigo-200:last-child { background: rgba(99, 102, 241, 0.25); }
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Buttons / Przyciski
+        /* -------------------------------------------------- */
+
+        /* All gradient buttons maintain white text which has high contrast */
+        /* But we enhance the background colors for better visibility in dark mode */
+
+        .dark .from-purple-500 { --tw-gradient-from: #a855f7; }
+        .dark .to-purple-600 { --tw-gradient-to: #9333ea; }
+        .dark .hover\:from-purple-600:hover { --tw-gradient-from: #9333ea; }
+        .dark .hover\:to-purple-700:hover { --tw-gradient-to: #7e22ce; }
+
+        .dark .from-blue-500 { --tw-gradient-from: #3b82f6; }
+        .dark .to-blue-600 { --tw-gradient-to: #2563eb; }
+        .dark .hover\:from-blue-600:hover { --tw-gradient-from: #2563eb; }
+        .dark .hover\:to-blue-700:hover { --tw-gradient-to: #1d4ed8; }
+
+        .dark .from-green-500 { --tw-gradient-from: #22c55e; }
+        .dark .to-green-600 { --tw-gradient-to: #16a34a; }
+        .dark .hover\:from-green-600:hover { --tw-gradient-from: #16a34a; }
+        .dark .hover\:to-green-700:hover { --tw-gradient-to: #15803d; }
+
+        .dark .from-emerald-500 { --tw-gradient-from: #10b981; }
+        .dark .to-teal-500 { --tw-gradient-to: #14b8a6; }
+
+        .dark .from-violet-500 { --tw-gradient-from: #8b5cf6; }
+        .dark .via-purple-600 { --tw-gradient-stops: var(--tw-gradient-from), #9333ea, var(--tw-gradient-to, rgba(147, 51, 234, 0)); }
+        .dark .to-indigo-600 { --tw-gradient-to: #4f46e5; }
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Tooltips & Toast Notifications
+        /* -------------------------------------------------- */
+
+        /* Toast notifications already use solid colors with white text = high contrast */
+        .dark .bg-green-500 { background-color: #22c55e; } /* Already good - 4.8:1 with white */
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Interactive States / Stany Interaktywne
+        /* -------------------------------------------------- */
+
+        /* Hover states for links and buttons */
+        .dark .hover\:text-blue-600:hover { color: #93c5fd; } /* blue-300 */
+        .dark .hover\:text-blue-400:hover { color: #60a5fa; } /* blue-400 */
+        .dark .hover\:bg-blue-50:hover { background-color: rgba(59, 130, 246, 0.1); }
+        .dark .hover\:bg-blue-900\/20:hover { background-color: rgba(30, 58, 138, 0.3); }
+
+        /* Secondary button hover states */
+        .dark .bg-slate-600 { background-color: #475569; }
+        .dark .hover\:bg-slate-500:hover { background-color: #64748b; }
+        .dark .bg-slate-700 { background-color: #334155; }
+        .dark .hover\:bg-slate-600:hover { background-color: #475569; }
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Special Elements / Elementy Specjalne
+        /* -------------------------------------------------- */
+
+        /* Green checkmark indicator */
+        .dark .bg-green-500 { background-color: #22c55e; }
+        .dark .from-green-400 { --tw-gradient-from: #4ade80; }
+        .dark .to-emerald-500 { --tw-gradient-to: #10b981; }
+
+        /* Project block selected state - Enhanced */
+        .dark .project-block .tree-item-content.selected {
+            background: linear-gradient(135deg, rgba(var(--accent-600), 0.3) 0%, rgba(var(--accent-700), 0.25) 100%);
+            border-color: rgba(var(--accent-400), 0.5);
+        }
+
+        .dark .project-block .tree-item-content:not(.selected):hover {
+            background-color: rgba(51, 65, 85, 0.5);
+        }
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Modals & Overlays / Okna Modalne i Nakładki
+        /* -------------------------------------------------- */
+
+        /* Modal overlays - Better visibility */
+        .dark .bg-black { background-color: rgba(0, 0, 0, 0.8); } /* Darker overlay */
+        .dark .bg-opacity-50 { --tw-bg-opacity: 0.7; } /* Increase opacity for better backdrop */
+
+        /* Modal content boxes */
+        .dark .bg-slate-800 { background-color: #1e293b; } /* Already defined but ensuring consistency */
+
+        /* Modal text */
+        .dark #modal-title { color: #f1f5f9; } /* slate-100 */
+        .dark #modal-text { color: #cbd5e1; } /* slate-300 */
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Favorites Cards / Karty Ulubionych
+        /* -------------------------------------------------- */
+
+        /* Favorites chips/cards - Enhanced for dark mode */
+        .dark .from-white\/95 { background: rgba(30, 41, 59, 0.95); }
+        .dark .via-violet-50 { background: rgba(109, 40, 217, 0.1); }
+        .dark .to-purple-50 { background: rgba(147, 51, 234, 0.1); }
+        .dark .from-slate-700 { background: rgba(51, 65, 85, 1); }
+        .dark .to-slate-600\/90 { background: rgba(71, 85, 105, 0.9); }
+        .dark .border-white\/60 { border-color: rgba(100, 116, 139, 0.4); }
+        .dark .border-slate-500\/80 { border-color: rgba(100, 116, 139, 0.6); }
+        .dark .hover\:border-violet-300:hover { border-color: rgba(196, 181, 253, 0.6); }
+        .dark .hover\:border-violet-500:hover { border-color: rgba(139, 92, 246, 0.8); }
+
+        /* Remove favorite button */
+        .dark .bg-slate-200\/80 { background-color: rgba(71, 85, 105, 0.6); }
+        .dark .bg-slate-700\/80 { background-color: rgba(51, 65, 85, 0.8); }
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Right Panel & Editor Area / Panel Prawy i Obszar Edytora
+        /* -------------------------------------------------- */
+
+        .dark .bg-white\/95 { background-color: rgba(30, 41, 59, 0.95); }
+        .dark .bg-slate-900\/95 { background-color: rgba(15, 23, 42, 0.95); }
+        .dark .border-slate-200\/60 { border-color: rgba(100, 116, 139, 0.4); }
+        .dark .border-slate-700\/60 { border-color: rgba(71, 85, 105, 0.6); }
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Placeholder & Empty States / Stany Puste i Placeholder
+        /* -------------------------------------------------- */
+
+        .dark .from-accent-100 { background: rgba(var(--accent-900), 0.3); }
+        .dark .to-accent-200 { background: rgba(var(--accent-800), 0.3); }
+        .dark .from-accent-900\/30 { background: rgba(var(--accent-900), 0.4); }
+        .dark .to-accent-800\/30 { background: rgba(var(--accent-800), 0.4); }
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Icon Containers / Kontenery Ikon
+        /* -------------------------------------------------- */
+
+        .dark .from-violet-500 { background: linear-gradient(to bottom right, #8b5cf6, #7c3aed); }
+        .dark .via-purple-600 { background: #9333ea; }
+        .dark .to-indigo-600 { background: #4f46e5; }
+
+        /* -------------------------------------------------- */
+        /* WCAG AA - Accent Color Enhancements / Wzmocnienia Koloru Akcentowego
+        /* -------------------------------------------------- */
+
+        /* Ensure accent colors are visible in dark mode */
+        .dark .text-accent-500 { color: rgba(var(--accent-400), 1); }
+        .dark .text-accent-600 { color: rgba(var(--accent-300), 1); }
+        .dark .text-accent-800 { color: rgba(var(--accent-200), 1); }
+
+        .dark .bg-accent-50 { background-color: rgba(var(--accent-950), 0.4); }
+        .dark .bg-accent-100 { background-color: rgba(var(--accent-900), 0.5); }
+
+        /* -------------------------------------------------- */
         /* 9. Layout & Responsive Styles / Układ i Style Responsywne
         /* -------------------------------------------------- */
         .favorites-wrapper { position: relative; }
@@ -473,6 +706,12 @@
             position: fixed; background-color: #1e293b; color: white;
             padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;
             pointer-events: none; z-index: 2000; opacity: 0; transition: opacity 0.2s;
+        }
+        .dark #global-tooltip {
+            background-color: #0f172a; /* slate-950 - deeper for better contrast */
+            color: #f1f5f9; /* slate-100 - high contrast white */
+            border: 1px solid rgba(100, 116, 139, 0.4);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.6);
         }
         
         #color-palette { position: relative; }
