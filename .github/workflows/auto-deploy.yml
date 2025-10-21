@@ -1,0 +1,49 @@
+name: Auto Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - 'claude/**'  # Trigger on any push to claude/* branches
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  auto-merge-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge to main
+        run: |
+          # Get current branch name
+          CURRENT_BRANCH="${GITHUB_REF#refs/heads/}"
+          echo "Current branch: $CURRENT_BRANCH"
+
+          # Checkout main branch
+          git checkout main || git checkout -b main
+
+          # Merge the claude/* branch into main
+          git merge --no-ff "$CURRENT_BRANCH" -m "Auto-merge: $CURRENT_BRANCH into main [skip ci]"
+
+          # Push to main
+          git push origin main
+
+      - name: Deployment complete
+        run: |
+          echo "✅ Changes from ${{ github.ref }} have been merged to main"
+          echo "🚀 GitHub Pages will update in 1-2 minutes"
+          echo "🌐 Live at: https://arturdab.github.io/prompt-panel/"
